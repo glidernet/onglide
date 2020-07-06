@@ -109,4 +109,5 @@ dist
 # emacs temporary files
 *~
 .#*
+#*#
 
