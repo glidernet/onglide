@@ -108,8 +108,5 @@ dist
 
 # emacs temporary files
 *~
-.#*
-#*#
+*#
 
-#.env.local#
-.env.local
