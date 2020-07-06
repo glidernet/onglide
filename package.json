@@ -1,0 +1,27 @@
+{
+  "name": "OnGlide",
+  "version": "1.0.0",
+  "description": "OnGlide competition website",
+  "main": "index.js",
+  "author": "Melissa Jenkins",
+  "license": "BSD",
+  "scripts": {
+    "build": "next build"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^1.2.29",
+    "@fortawesome/free-solid-svg-icons": "^5.13.1",
+    "@fortawesome/react-fontawesome": "^0.1.11",
+    "bootstrap": "^4.5.0",
+    "lodash": "^4.17.15",
+    "next": "^9.4.4",
+    "react": "^16.13.1",
+    "react-bootstrap": "^1.0.1",
+    "react-dom": "^16.13.1",
+    "react-map-gl": "^5.2.7",
+    "serverless-mysql": "^1.5.4",
+    "sql-template-strings": "^2.2.2",
+    "swr": "^0.2.3",
+    "turf": "^3.0.14"
+  }
+}
