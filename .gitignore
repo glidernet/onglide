@@ -102,3 +102,11 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Local environment variables
+.env.local
+
+# emacs temporary files
+*~
+.#*
+
