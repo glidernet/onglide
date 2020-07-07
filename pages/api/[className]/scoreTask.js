@@ -45,6 +45,18 @@ export default async function scoreTask( req,res ) {
 
 const fetcher = url => fetch(url).then(res => res.json());
 
+// We want to keep track of what we have scored before as this algo has always been
+// iterative. We expect them to have some values so initialise them correctly
+// NOTE: *trackers* is what is returned, it is an amalgam of the database data
+//         and the scored data (mergeDB to get DB and then scoring updates)
+//       *state* is internal calculation and wil depend on the type of task
+//         eg for AAT it stores the djikstra working set
+//       *tasks* is the task data
+let kv = undefined;
+
+//
+// Function to score any type of task - checks the task type field in the database
+// to decide how to delegate to the various different kinds of tasks
 export default async function scoreTask( req, res ) {
     const {
 	query: { className },
@@ -55,21 +67,49 @@ export default async function scoreTask( req, res ) {
 	res.status(404).json({error: "missing parameter(s)"});
 	return;
     }
-
+    
+    // We want to keep track of what we have scored before as this algo has always been
+    // iterative. We expect them to have some values so initialise them correctly
+    // NOTE: *trackers* is what is returned, it is an amalgam of the database data
+    //         and the scored data (mergeDB to get DB and then scoring updates)
+    //       *state* is internal calculation and wil depend on the type of task
+    //         eg for AAT it stores the djikstra working set
+    //       *tasks* is the task data
+    if( ! kv ) {
+	console.log("new kv store");
+	kv = new Keyv({namespace: 'scoring_'+className});
+    }
+    const now = Date.now();
+    
     // Fetch the tasks, legs, competition rules etc.  Needed for scoring
-    let task = await fetcher('http://localhost:3000/api/'+className+'/task')
-    if( ! task || ! task.task || ! task.task.type ) {
-	console.log( 'no task for class: ' + className );
-	res.status(404).json({error:'no task for class: ' + className});
-	return;
+    // try cache
+    let task = await kv.get('task');
+    if( !task || !task.ts || (task.ts+600*1000) < now ) {
+	
+	// and if it's stale then get from the api
+	task = await fetcher('http://localhost:3000/api/'+className+'/task')
+	if( ! task || ! task.task || ! task.task.type ) {
+	    console.log( 'no task for class: ' + className );
+	    res.status(404).json({error:'no task for class: ' + className});
+	    return;
+	}
+
+	task.ts = now;
+	kv.set('task',task);
     }
 	
-    // Fetch the tasks, legs, competition rules etc.  Needed for scoring
-    const rawpilots = await fetcher('http://localhost:3000/api/'+className+'/pilots')
-    if( ! rawpilots || ! rawpilots.pilots || ! rawpilots.pilots.length ) {
-	console.log( 'no pilots for class: ' + className );
-	res.status(404).json({error:'no pilots for class: ' + className});
-	return;
+    // Fetch the basic pilot information
+    let rawpilots = await kv.get('pilots');
+    if( !rawpilots || ! rawpilots.ts || (rawpilots.ts+600*1000)<now ) {
+	rawpilots = await fetcher('http://localhost:3000/api/'+className+'/pilots')
+	if( ! rawpilots || ! rawpilots.pilots || ! rawpilots.pilots.length ) {
+	    console.log( 'no pilots for class: ' + className );
+	    res.status(404).json({error:'no pilots for class: ' + className});
+	    return;
+	}
+
+	rawpilots.ts = now;
+	kv.set('pilots',rawpilots);
     }
 
     // Decorate the tasks so we have sectors in geoJSON format, we need this
@@ -88,15 +128,26 @@ export default async function scoreTask( req, res ) {
     // Group them by comp number, this is quicker than multiple sub queries from the DB
     let points = _groupby( rawpoints, 'compno' );
     const pilots = _groupby( rawpilots.pilots, 'compno' );
+    
 
-    // We want to keep track of what we have scored before as this algo has always been
-    // iterative. We expect them to have some values so initialise them correctly
-    // NOTE: *trackers* is what is returned, it is an amalgam of the database data
-    //         and the scored data (mergeDB to get DB and then scoring updates)
-    //       *state* is internal calculation and wil depend on the type of task
-    //         eg for AAT it stores the djikstra working set
-    let kv = new Keyv({namespace: 'scoring_'+className});
-//    kv.clear();
+    // We need to make sure our cache is valid - this is both to confirm it hasn't
+    // gone back in time more than our check interval (for running sample site)
+    // and that the taskid hasn't changed (eg from a new contest day)
+    const cacheTScheck = await kv.get('cacheTScheck');
+    const cacheTaskId = await kv.get('cacheTaskId');
+    console.log( 'Cache Check: '+cacheTScheck+' vs '+rawpoints[0].t+', Cache Task Id:'+cacheTaskId+', task.id:'+task.task.taskid);
+    if( (cacheTScheck && cacheTScheck > rawpoints[0].t) || (cacheTaskId && cacheTaskId != task.task.taskid) ) {
+	kv.clear();
+	console.log("stale cache, fail request");
+	res.status(503)
+	    .json({error:'stale cache'});
+	return;
+    }
+    await kv.set('cacheTScheck',rawpoints[0].t);
+    await kv.set('cacheTaskId',task.task.taskid);
+
+    // Now we can get our tracker history and internal state for scoring, the scoring routines
+    // should be iterative so don't need to reprocess all points. 
     let trackers = await kv.get('trackers');
     if( ! trackers ) {
 	trackers = {};
@@ -128,6 +179,9 @@ export default async function scoreTask( req, res ) {
     });
 
     // Next step for all types of task is to confirm we have a valid start
+    // Note that this happens throughout the flight regardless of how many turnpoints
+    // have been flown, however to register as a new start the pilot must exit start sector and enter
+    // 1st turn (or 3km near it). There is a restriction to stop it checking more than every 60 seconds
     _foreach( trackers, (pilot,compno) => findStart( trackers[compno], state[compno], task.legs, points[compno] ) );
 
     // Actually score the task
