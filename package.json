@@ -12,7 +12,10 @@
     "@fortawesome/fontawesome-svg-core": "^1.2.29",
     "@fortawesome/free-solid-svg-icons": "^5.13.1",
     "@fortawesome/react-fontawesome": "^0.1.11",
+    "@turf/boolean-point-in-polygon": "^6.0.1",
+    "@turf/turf": "^5.1.6",
     "bootstrap": "^4.5.0",
+    "keyv": "^4.0.1",
     "lodash": "^4.17.15",
     "next": "^9.4.4",
     "react": "^16.13.1",
@@ -21,7 +24,6 @@
     "react-map-gl": "^5.2.7",
     "serverless-mysql": "^1.5.4",
     "sql-template-strings": "^2.2.2",
-    "swr": "^0.2.3",
-    "turf": "^3.0.14"
+    "swr": "^0.2.3"
   }
 }

@@ -16,7 +16,7 @@ export default async function taskHandler( req, res) {
     // this is the pilot results
     const pilots = await db.query(escape`
 	select pilots.class, pilots.compno, 
-		       pr.status dbstatus, 
+		       pr.status dbstatus, datafromscoring,scoredstatus,
 		       UNIX_TIMESTAMP(CONCAT(fdcode(cs.datecode),' ',start))-(SELECT tzoffset FROM competition) utcstart, start, finish,
 		       lolat,lolong,pilots.class,
 	               concat(firstname,' ',lastname) name, glidertype, handicap, image, daypoints, dayrank, country,

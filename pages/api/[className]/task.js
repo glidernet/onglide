@@ -38,13 +38,10 @@ export default async function taskHandler( req, res) {
       ORDER BY legno
     `);
 
-    const comprules = await db.query(escape`
-     SELECT cr.*
-          FROM global.comprules cr, classes
-          WHERE cr.name = classes.type
-            AND classes.class= ${className}
-            AND cr.country = (select countrycode from competition) or cr.country = '*' 
-         limit 1
+    const classes = await db.query(escape`
+     SELECT *
+          FROM classes
+          WHERE classes.class= ${className}
     `);
 
     // How long should it be cached - 60 seconds is goo
@@ -52,5 +49,5 @@ export default async function taskHandler( req, res) {
 
     // And we succeeded - here is the json
     res.status(200)
-	.json({legs: tasklegs, task: taskdetails[0], rules: comprules[0], contestday: contestday[0] })
+	.json({legs: tasklegs, task: taskdetails[0], classes: classes[0], rules: '', contestday: contestday[0] })
 }

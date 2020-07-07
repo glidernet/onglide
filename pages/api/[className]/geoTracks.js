@@ -91,8 +91,6 @@ export default async function taskHandler( req, res) {
 	}
     });
 
-    console.log(locationJSON);
-
     res.status(200)
 	.json({tracks:trackJSON,locations:locationJSON});
 }
