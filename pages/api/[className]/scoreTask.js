@@ -26,6 +26,7 @@ import findStart from '../../../lib/scorefindstart.js';
 
 // Different scoring techniques
 import scoreAssignedAreaTask from '../../../lib/scoreassignedareatask'
+import scoreSpeedTask from '../../../lib/scorespeedtask'
 
 /*
 const cacheableResponse = require('cacheable-response')
@@ -188,11 +189,11 @@ export default async function scoreTask( req, res ) {
     let results = '';
     switch( task.task.type ) {
     case 'A': // Assigned Area Task
-	results = _map( points, (points,compno) => scoreAssignedAreaTask(task.legs, trackers[compno], state[compno], points ) );
+	results = _map( points, (points,compno) => scoreAssignedAreaTask( task, trackers[compno], state[compno], points ) );
 	//scoreAssignedAreaTask(task.legs, trackers['WO'], points['WO']);
 	break;
     case 'S': // speed task
-//	results = _map( points, (points,compno) => scoreSpeedTask(task.legs, trackers[compno], state[compno], points ) );
+	results = _map( points, (points,compno) => scoreSpeedTask( task, trackers[compno], state[compno], points ) );
 	break;
     case 'D': // distance handicapped task
 //	results = _map( points, (points,compno) => scoreDistanceHandicapTask(task.legs, trackers[compno], state[compno], points ) );
