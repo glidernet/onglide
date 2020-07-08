@@ -26,7 +26,8 @@ export default async function taskHandler( req, res) {
     let task = await db.query(escape`
       SELECT tasks.*
       FROM tasks, compstatus cs
-      WHERE cs.class = ${className} AND cs.datecode = tasks.datecode AND tasks.flown = 'Y' 
+      WHERE cs.class = ${className} AND tasks.class = cs.class 
+        AND cs.datecode = tasks.datecode AND tasks.flown = 'Y' 
     `);
 
     let tasklegs = await db.query(escape`
@@ -51,6 +52,7 @@ export default async function taskHandler( req, res) {
                              }
                            });
 
+    console.log( task );
 
     // Check distances (not used at present)
 //    const taskLength = calculateTaskLength( tasklegs );
