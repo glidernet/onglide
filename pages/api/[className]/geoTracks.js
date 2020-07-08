@@ -11,9 +11,10 @@ import { useRouter } from 'next/router'
 import _groupby  from 'lodash/groupby'
 import _mapvalues  from 'lodash/mapvalues'
 
+// How far back in time to do we want to show
+const historyLength = 600;
 
-
-export default async function taskHandler( req, res) {
+export default async function geoTracks( req, res) {
     const {
         query: { className },
     } = req;
@@ -32,17 +33,16 @@ export default async function taskHandler( req, res) {
     `))[0].datecode;
 
     // Only last 10 minutes
-    let latest = (await db.query(escape`
+    const latest = (await db.query(escape`
             SELECT MAX(t) maxt FROM trackpoints
              WHERE datecode=${datecode} AND class=${className} `))[0].maxt;
-    latest -= 1200;
 
-    // Get the points
+    // Get the points, last
     let points = await db.query(escape`
-            SELECT compno, lat, lng
-              FROM trackpoints
-             WHERE datecode=${datecode} AND class=${className} AND t > ${latest}
-             ORDER BY t DESC`);
+            SELECT tp.compno, lat, lng, t, altitude a, agl g FROM trackpoints tp
+              JOIN (select compno, max(t) mt FROM trackpoints ti WHERE ti.datecode=${datecode} AND ti.class=${className} GROUP by ti.compno) ti 
+                ON tp.t > ti.mt - ${historyLength} and tp.compno = ti.compno
+             WHERE tp.datecode=${datecode} AND tp.class=${className} ORDER by t DESC`);
 
     // Group them by comp number, this is quicker than multiple sub queries from the DB
     const grouped = _groupby( points, 'compno' );//function(p) { return p.compno } );
@@ -61,6 +61,8 @@ export default async function taskHandler( req, res) {
     });
 
 
+    //
+    // Generate the track
     let trackJSON = {
 	"type": "FeatureCollection",
 	"features": []
@@ -71,29 +73,42 @@ export default async function taskHandler( req, res) {
 	if( pilot && pilot.coordinates ) {
 	    trackJSON.features = [].concat( trackJSON.features,
 					    [{ 'type': 'Feature',
-					       properties: {'c':key, 'v':(latest-points[0].t>300?'grey':'green')},
 					       geometry: pilot }] );
 	}
     });
 
+    //
+    // Generate the icon
     let locationJSON = {
 	"type": "FeatureCollection",
 	"features": []
     };
 
-    Object.keys(collection).forEach( (key) => {
-	const pilot = collection[key];
-	if( pilot && pilot.coordinates ) {
+    // Get the latest ones
+    Object.keys(grouped).forEach( (key) => {
+	const points = grouped[key];
+	if( points && points.length > 0 ) {
+	    console.log(key+' '+(latest-points[0].t));
 	    locationJSON.features = [].concat( locationJSON.features,
 					       [{ 'type': 'Feature',
-						  properties: { 'i': 'circle', 'c': key },
+						  properties: { 'i': 'circle',
+								'c': key,
+								'v':(latest-points[0].t>300?'grey':'green'),
+								'x': points[0].a + 'm (' + points[0].g + 'm agl)',
+							      },
 						  geometry: { 'type': 'Point',
-							      'coordinates': pilot.coordinates[0]
+							      'coordinates': [points[0].lng,points[0].lat]
 							    }
 						}] );
 	}
+	else {
+	    console.log(key+' no points');
+	}
     });
-
+				   
+    // How long should it be cached - 2 seconds (increase when websockets are working)
+    res.setHeader('Cache-Control','max-age=2');
+				     
     res.status(200)
 	.json({tracks:trackJSON,locations:locationJSON});
 }
