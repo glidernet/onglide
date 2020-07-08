@@ -48,8 +48,6 @@ export default async function taskHandler( req, res ) {
     for( let i = 0; i < points.length; i++ ) {
 	const p = points[i];
 
-	console.log( tLastPoint - p.t );
-
 	// If there is a gap (seconds)
 	if( tLastPoint - p.t > 300 ) {
 
