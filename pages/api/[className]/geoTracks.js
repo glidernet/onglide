@@ -88,7 +88,6 @@ export default async function geoTracks( req, res) {
     Object.keys(grouped).forEach( (key) => {
 	const points = grouped[key];
 	if( points && points.length > 0 ) {
-	    console.log(key+' '+(latest-points[0].t));
 	    locationJSON.features = [].concat( locationJSON.features,
 					       [{ 'type': 'Feature',
 						  properties: { 'i': 'circle',
@@ -100,9 +99,6 @@ export default async function geoTracks( req, res) {
 							      'coordinates': [points[0].lng,points[0].lat]
 							    }
 						}] );
-	}
-	else {
-	    console.log(key+' no points');
 	}
     });
 				   
