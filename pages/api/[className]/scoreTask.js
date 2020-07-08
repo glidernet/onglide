@@ -15,6 +15,7 @@ import _groupby  from 'lodash/groupby'
 import _map  from 'lodash/map'
 import _foreach  from 'lodash/foreach'
 import _clone  from 'lodash/clone'
+import _maxby  from 'lodash/maxby'
 
 import Keyv from 'keyv'
 
@@ -27,23 +28,9 @@ import findStart from '../../../lib/scorefindstart.js';
 // Different scoring techniques
 import scoreAssignedAreaTask from '../../../lib/scoreassignedareatask'
 import scoreSpeedTask from '../../../lib/scorespeedtask'
+import scoreDistanceHandicapTask from '../../../lib/scoredistancehandicap'
 
-/*
-const cacheableResponse = require('cacheable-response')
-
-export default async function scoreTask( req,res ) {
-
-    const ssrCache = cacheableResponse({
-	get: ({ req, res }) => ({
-	    data: scoreSpeedTask(req,res),
-	    ttl:  60000 // 1 minute
-	}),
-	send: ({ data, res, req }) => res.send(data)
-    })
-    
-}
-*/
-
+// Helper
 const fetcher = url => fetch(url).then(res => res.json());
 
 // We want to keep track of what we have scored before as this algo has always been
@@ -196,7 +183,7 @@ export default async function scoreTask( req, res ) {
 	results = _map( points, (points,compno) => scoreSpeedTask( task, trackers[compno], state[compno], points ) );
 	break;
     case 'D': // distance handicapped task
-//	results = _map( points, (points,compno) => scoreDistanceHandicapTask(task.legs, trackers[compno], state[compno], points ) );
+	results = _map( points, (points,compno) => scoreDistanceHandicapTask(task.legs, trackers[compno], state[compno], points, _maxby(trackers,'handicap') ) );
 	break;
     default:
 	const error = 'no scoring function defined for task type: ' + task.task.type;
