@@ -102,7 +102,21 @@ export default async function scoreTask( req, res ) {
 	kv.set('pilots',rawpilots);
 	kv.set('task',task);
     }
-    
+        
+    // Decorate the tasks so we have sectors in geoJSON format, we need this
+    // for point in polygon etc, this isn't cached as we can't serialise functions
+    // geoJSON probably is but tidier to just redo it here than confirm and not very expensive
+    task.legs.forEach( (leg) => preprocessSector(leg) );
+    task.legs.forEach( (leg) => sectorGeoJSON( task.legs, leg.legno ) );
+
+    // Next up we will fetch a list of the pilots and their complete tracks
+    // This is going to be a big query
+    let rawpoints = await db.query(escape`
+            SELECT compno, t, lat, lng, altitude a
+              FROM trackpoints
+             WHERE datecode=${task.contestday.datecode} AND class=${className}
+            ORDER BY t DESC`);
+
     // We need to make sure our cache is valid - this is both to confirm it hasn't
     // gone back in time more than our check interval (for running sample site)
     // and that the taskid hasn't changed (eg from a new contest day)
@@ -119,24 +133,9 @@ export default async function scoreTask( req, res ) {
     kv.set('cacheTScheck',rawpoints[0].t);
     kv.set('cacheTaskId',task.task.taskid);
     
-    // Decorate the tasks so we have sectors in geoJSON format, we need this
-    // for point in polygon etc, this isn't cached as we can't serialise functions
-    // geoJSON probably is but tidier to just redo it here than confirm and not very expensive
-    task.legs.forEach( (leg) => preprocessSector(leg) );
-    task.legs.forEach( (leg) => sectorGeoJSON( task.legs, leg.legno ) );
-
-    // Next up we will fetch a list of the pilots and their complete tracks
-    // This is going to be a big query
-    let rawpoints = await db.query(escape`
-            SELECT compno, t, lat, lng, altitude a
-              FROM trackpoints
-             WHERE datecode=${task.contestday.datecode} AND class=${className}
-            ORDER BY t DESC`);
-
     // Group them by comp number, this is quicker than multiple sub queries from the DB
     let points = _groupby( rawpoints, 'compno' );
     const pilots = _groupby( rawpilots.pilots, 'compno' );
-
 
     // Now we can get our tracker history and internal state for scoring, the scoring routines
     // should be iterative so don't need to reprocess all points. 
