@@ -2,6 +2,8 @@ const db = require('../../../lib/db')
 const escape = require('sql-template-strings')
 import { useRouter } from 'next/router'
 
+import { calculateTaskLength } from '../../../lib/taskhelper.js';
+
 export default async function taskHandler( req, res) {
     const {
 	query: { className },
@@ -49,6 +51,10 @@ export default async function taskHandler( req, res) {
       WHERE taskleg.taskid = ${taskid}
       ORDER BY legno
     `);
+
+    // We correct task leg length as our calculations are more accurate
+    taskdetails[0].distance = calculateTaskLength(tasklegs);
+    delete taskdetails[0].hdistance;
 
     const classes = await db.query(escape`
      SELECT *
