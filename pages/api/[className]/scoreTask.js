@@ -101,7 +101,8 @@ export default async function scoreTask( req, res ) {
     }
 
     // Decorate the tasks so we have sectors in geoJSON format, we need this
-    // for point in polygon etc
+    // for point in polygon etc, this isn't cached as we can't serialise functions
+    // geoJSON probably is but tidier to just redo it here than confirm and not very expensive
     task.legs.forEach( (leg) => preprocessSector(leg) );
     task.legs.forEach( (leg) => sectorGeoJSON( task.legs, leg.legno ) );
 
