@@ -55,7 +55,11 @@ function Menu(props) {
     const comp = props.comp;
 
     const classes = comp.classes.map( (c) => <Nav.Item key={'navitem'+c.class}>
-						 <Nav.Link href='#' key={'navlink'+c.class} onClick={() => Router.push('/?className='+c.class, undefined, {shallow:true})}>
+						 <Nav.Link href='#'
+							   key={'navlink'+c.class}
+							   eventKey={c.class}
+							   onClick={() => { Router.push('/?className='+c.class, undefined, {shallow:true});
+									    props.setSelectedPilot(null);}}>
 						     {c.classname}
 						 </Nav.Link>
 					     </Nav.Item>);
@@ -65,25 +69,21 @@ function Menu(props) {
     
     return (
 	<>
-	<Navbar bg="light" fixed="top">
-	    <Navbar.Toggle aria-controls="responsive-navbar-nav" />
-	    <Navbar.Collapse id="responsive-navbar-nav">
-                <Navbar.Brand href={comp.competition.mainsite}>
-		    {comp.competition.name}<span style={{fontSize: '70%'}}>{comp.competition.start} to {comp.competition.end}</span>
-		</Navbar.Brand>
-		<NavDropdown.Divider />
-		<Nav fill variant="tabs" defaultActiveKey={props.current}>
+	    <Navbar bg="light" fixed="top">
+		<Nav fill variant="tabs" defaultActiveKey={props.vc} style={{width:'100%'}}>
 		    {classes}
 		</Nav>
-		<NavDropdown.Divider />
-	    </Navbar.Collapse>
-	</Navbar>
+		<Navbar.Collapse id="responsive-navbar-nav">
+		    <Navbar.Brand href={comp.competition.mainsite}>
+			<img width="15px"/>
+			{comp.competition.name}<span style={{fontSize: '70%'}}>{comp.competition.start} to {comp.competition.end}</span>
+		    </Navbar.Brand>
+		</Navbar.Collapse>
+	    </Navbar>
 	    <br style={{clear:'both'}}/>
-	   </> 
+	</> 
     );
 }
-
-
 
 function CombinePage() {
 
@@ -91,6 +91,7 @@ function CombinePage() {
     console.log( router.query );
     const { className } = router.query;
     const { comp, isLoading, error } = useContest();
+    const [ selectedPilot, setSelectedPilot ] = useState( '' );
     console.log("x0x0x0x0x");
     
     if (isLoading) return <Spinner />
@@ -99,15 +100,15 @@ function CombinePage() {
     return (
 	<>
             <IncludeJavascript/>
-            <Menu comp={comp} vc={className}/>
+            <Menu comp={comp} vc={className} setSelectedPilot={setSelectedPilot}/>
             <Container fluid>
                 <Row>
                     <Col sm={7}>
-			<TaskMap vc={className}/>
+			<TaskMap vc={className} selectedPilot={selectedPilot}/>
 		    </Col>
                     <Col>
                         <TaskDetails vc={className}/>
-                        <PilotList vc={className}/>
+                        <PilotList vc={className} selectedPilot={selectedPilot} setSelectedPilot={(x)=>setSelectedPilot(x)}/>
                     </Col>
                 </Row>
             </Container>
