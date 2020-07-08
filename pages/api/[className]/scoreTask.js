@@ -40,7 +40,7 @@ const fetcher = url => fetch(url).then(res => res.json());
 //       *state* is internal calculation and wil depend on the type of task
 //         eg for AAT it stores the djikstra working set
 //       *tasks* is the task data
-let kv = undefined;
+let kvs = [];
 
 //
 // Function to score any type of task - checks the task type field in the database
@@ -58,21 +58,28 @@ export default async function scoreTask( req, res ) {
     
     // We want to keep track of what we have scored before as this algo has always been
     // iterative. We expect them to have some values so initialise them correctly
+    // The cache is per class as each class has different scoring and we need to be
+    // able to do them all at once.
+    //
     // NOTE: *trackers* is what is returned, it is an amalgam of the database data
     //         and the scored data (mergeDB to get DB and then scoring updates)
     //       *state* is internal calculation and wil depend on the type of task
     //         eg for AAT it stores the djikstra working set
     //       *tasks* is the task data
-    if( ! kv ) {
+    let kv = kvs[className];
+    if( ! kvs[className] ) {
 	console.log("new kv store");
-	kv = new Keyv({namespace: 'scoring_'+className});
+	kvs[className] = kv = new Keyv({namespace: 'scoring_'+className});
+	
     }
     const now = Date.now();
     
     // Fetch the tasks, legs, competition rules etc.  Needed for scoring
     // try cache
     let task = await kv.get('task');
-    if( !task || !task.ts || (task.ts+600*1000) < now ) {
+    let rawpilots = await kv.get('pilots');
+    if( (!task || !task.ts || (task.ts+600*1000) < now ) ||
+	(!rawpilots || ! rawpilots.ts || (rawpilots.ts+600*1000)<now )) {
 	
 	// and if it's stale then get from the api
 	task = await fetcher('http://localhost:3000/api/'+className+'/task')
@@ -82,13 +89,6 @@ export default async function scoreTask( req, res ) {
 	    return;
 	}
 
-	task.ts = now;
-	kv.set('task',task);
-    }
-	
-    // Fetch the basic pilot information
-    let rawpilots = await kv.get('pilots');
-    if( !rawpilots || ! rawpilots.ts || (rawpilots.ts+600*1000)<now ) {
 	rawpilots = await fetcher('http://localhost:3000/api/'+className+'/pilots')
 	if( ! rawpilots || ! rawpilots.pilots || ! rawpilots.pilots.length ) {
 	    console.log( 'no pilots for class: ' + className );
@@ -96,10 +96,29 @@ export default async function scoreTask( req, res ) {
 	    return;
 	}
 
-	rawpilots.ts = now;
+	// Store what we have received so we don't need to query till it expires
+	// which is handled below
+	task.ts = rawpilots.ts = now;
 	kv.set('pilots',rawpilots);
+	kv.set('task',task);
     }
-
+    
+    // We need to make sure our cache is valid - this is both to confirm it hasn't
+    // gone back in time more than our check interval (for running sample site)
+    // and that the taskid hasn't changed (eg from a new contest day)
+    const cacheTScheck = await kv.get('cacheTScheck');
+    const cacheTaskId = await kv.get('cacheTaskId');
+    console.log( className+' Cache Check: '+cacheTScheck+' vs '+rawpoints[0].t+', Cache Task Id:'+cacheTaskId+', task.id:'+task.task.taskid);
+    if( (cacheTScheck && cacheTScheck > rawpoints[0].t) || (cacheTaskId && cacheTaskId != task.task.taskid) ) {
+	kv.clear();
+	console.log("stale cache, fail request");
+	res.status(503)
+	    .json({error:'stale cache'});
+	return;
+    }
+    kv.set('cacheTScheck',rawpoints[0].t);
+    kv.set('cacheTaskId',task.task.taskid);
+    
     // Decorate the tasks so we have sectors in geoJSON format, we need this
     // for point in polygon etc, this isn't cached as we can't serialise functions
     // geoJSON probably is but tidier to just redo it here than confirm and not very expensive
@@ -117,23 +136,7 @@ export default async function scoreTask( req, res ) {
     // Group them by comp number, this is quicker than multiple sub queries from the DB
     let points = _groupby( rawpoints, 'compno' );
     const pilots = _groupby( rawpilots.pilots, 'compno' );
-    
 
-    // We need to make sure our cache is valid - this is both to confirm it hasn't
-    // gone back in time more than our check interval (for running sample site)
-    // and that the taskid hasn't changed (eg from a new contest day)
-    const cacheTScheck = await kv.get('cacheTScheck');
-    const cacheTaskId = await kv.get('cacheTaskId');
-    console.log( 'Cache Check: '+cacheTScheck+' vs '+rawpoints[0].t+', Cache Task Id:'+cacheTaskId+', task.id:'+task.task.taskid);
-    if( (cacheTScheck && cacheTScheck > rawpoints[0].t) || (cacheTaskId && cacheTaskId != task.task.taskid) ) {
-	kv.clear();
-	console.log("stale cache, fail request");
-	res.status(503)
-	    .json({error:'stale cache'});
-	return;
-    }
-    await kv.set('cacheTScheck',rawpoints[0].t);
-    await kv.set('cacheTaskId',task.task.taskid);
 
     // Now we can get our tracker history and internal state for scoring, the scoring routines
     // should be iterative so don't need to reprocess all points. 
