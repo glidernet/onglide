@@ -20,6 +20,12 @@ export default async function taskHandler( req, res) {
           LIMIT 1
     `);
 
+    if( ! contestday || ! contestday.length ) {
+	console.log( "invalid class" );
+	res.status(404).json({error: "invalid class"});
+	return;
+    }
+
     const datecode = contestday[0].datecode;
 
     const taskdetails = await db.query(escape`
@@ -28,6 +34,12 @@ export default async function taskHandler( req, res) {
           WHERE tasks.datecode= ${datecode} and tasks.class= ${className} and tasks.flown='Y'
     `);
 
+    if( ! taskdetails || ! taskdetails.length ) {
+	console.log( "no active task" );
+	res.status(404).json({error: "no active task"});
+	return;
+    }
+    
     const taskid = taskdetails[0].taskid;
     console.log(taskid);
 

@@ -51,6 +51,11 @@ export default async function taskHandler( req, res) {
 			  and pilots.class = ${className}
      `);
 
+    if( ! pilots || ! pilots.length ) {
+	console.log( "invalid class" );
+	res.status(404).json({error: "invalid class"});
+	return;
+    }
 
 
     // How long should it be cached - 60 seconds is goo
