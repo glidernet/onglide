@@ -35,7 +35,7 @@ export default async function taskHandler( req, res) {
     let latest = (await db.query(escape`
             SELECT MAX(t) maxt FROM trackpoints
              WHERE datecode=${datecode} AND class=${className} `))[0].maxt;
-    latest -= 600;
+    latest -= 1200;
 
     // Get the points
     let points = await db.query(escape`
@@ -69,7 +69,10 @@ export default async function taskHandler( req, res) {
     Object.keys(collection).forEach( (key) => {
 	const pilot = collection[key];
 	if( pilot && pilot.coordinates ) {
-	    trackJSON.features = [].concat( trackJSON.features, [{ 'type': 'Feature', properties: {'c':key}, geometry: pilot }] );
+	    trackJSON.features = [].concat( trackJSON.features,
+					    [{ 'type': 'Feature',
+					       properties: {'c':key, 'v':(latest-points[0].t>300?'grey':'green')},
+					       geometry: pilot }] );
 	}
     });
 
