@@ -28,7 +28,7 @@ import findStart from '../../../lib/scorefindstart.js';
 // Different scoring techniques
 import scoreAssignedAreaTask from '../../../lib/scoreassignedareatask'
 import scoreSpeedTask from '../../../lib/scorespeedtask'
-import scoreDistanceHandicapTask from '../../../lib/scoredistancehandicap'
+import scoreDistanceHandicapTask from '../../../lib/scoredistancehandicaptask'
 
 // Helper
 const fetcher = url => fetch(url).then(res => res.json());
@@ -182,8 +182,8 @@ export default async function scoreTask( req, res ) {
     case 'S': // speed task
 	results = _map( points, (points,compno) => scoreSpeedTask( task, trackers[compno], state[compno], points ) );
 	break;
-    case 'D': // distance handicapped task
-	results = _map( points, (points,compno) => scoreDistanceHandicapTask(task.legs, trackers[compno], state[compno], points, _maxby(trackers,'handicap') ) );
+    case 'D': // distance handicapped task (needs to know the maximum handicap to score it properly)
+	results = _map( points, (points,compno) => scoreDistanceHandicapTask( task, trackers[compno], state[compno], points, _maxby(trackers,'handicap') ));
 	break;
     default:
 	const error = 'no scoring function defined for task type: ' + task.task.type;
