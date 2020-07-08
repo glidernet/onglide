@@ -198,7 +198,7 @@ export default async function scoreTask( req, res ) {
     // Update the geoJSON with the scored trackline so we can easily display
     // what the pilot has been scored for
     _foreach( trackers, (pilot) => {
-	if( pilot.scoredpoints && pilot.scoredpoints.length) pilot.scoredGeoJSON = lineString(pilot.scoredpoints,{})
+	if( pilot.scoredpoints && pilot.scoredpoints.length>1) pilot.scoredGeoJSON = lineString(pilot.scoredpoints,{})
 	pilot.altitude = points[pilot.compno] ? points[pilot.compno][0].a : undefined;
     } );
 
