@@ -16,7 +16,7 @@
 - load the stored procedures
 - configure your soaring spot keys in the table soaringspotkey
 
-- download the DEM files you need from https://dds.cr.usgs.gov/srtm/version2_1/SRTM3/ extract them to the bin/dem directory
+- If you want HGL to work download the DEM files you need from https://dds.cr.usgs.gov/srtm/version2_1/SRTM3/ extract them to the bin/dem directory
 
 - configure your webserver (there is a sample file but you'll want certificates etc)
 
@@ -28,7 +28,7 @@
 ## Running
 
 - start database
-- start the OGN processor (onglide_ogn.pl) this will fetch data into the database and send on websocket
+- start the OGN processor (bin/onglide_ogn.pl) this will fetch data into the database and send on websocket
 - start the application (yarn next start)
 - start webserver
 
