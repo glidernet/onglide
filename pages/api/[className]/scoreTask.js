@@ -73,6 +73,7 @@ export default async function scoreTask( req, res ) {
 	
     }
     const now = Date.now();
+    const startProfiling = process.hrtime();
     
     // Fetch the tasks, legs, competition rules etc.  Needed for scoring
     // try cache
@@ -122,7 +123,7 @@ export default async function scoreTask( req, res ) {
     // and that the taskid hasn't changed (eg from a new contest day)
     const cacheTScheck = await kv.get('cacheTScheck');
     const cacheTaskId = await kv.get('cacheTaskId');
-    console.log( className+' Cache Check: '+cacheTScheck+' vs '+rawpoints[0].t+', Cache Task Id:'+cacheTaskId+', task.id:'+task.task.taskid);
+    //    console.log( className+' Cache Check: '+cacheTScheck+' vs '+rawpoints[0].t+', Cache Task Id:'+cacheTaskId+', task.id:'+task.task.taskid);
     if( (cacheTScheck && cacheTScheck > rawpoints[0].t) || (cacheTaskId && cacheTaskId != task.task.taskid) ) {
 	kv.clear();
 	console.log("stale cache, fail request");
@@ -207,6 +208,9 @@ export default async function scoreTask( req, res ) {
     // round
     kv.set('trackers',trackers);
     kv.set('state',state);
+
+    const profiled = process.hrtime(startProfiling);
+    console.info('Scoring time (elapsed): %d seconds', Math.round(1000*(profiled[0] + (profiled[1] / 1000000000)))/1000 );
 
     // Return the results, this returns basically the same as the pilot
     // API call except it will be enriched with results if we have any
