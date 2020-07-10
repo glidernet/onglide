@@ -702,22 +702,23 @@ sub readDEM
 {
     my ($demfileE, $demfileN) = @_;
 
+    
     my $path;
-    if   ($demfileN >= 0 && $demfileE >= 0){ $path = sprintf("/home/melissa/dem/N%.2dE%.3d.hgt", $demfileN,  $demfileE); }
-    elsif($demfileN >= 0 && $demfileE <  0){ $path = sprintf("/home/melissa/dem/N%.2dW%.3d.hgt", $demfileN, -$demfileE); }
-    elsif($demfileN  < 0 && $demfileE >= 0){ $path = sprintf("/home/melissa/dem/S%.2dE%.3d.hgt", -$demfileN, $demfileE); }
-    else                                   { $path = sprintf("/home/melissa/dem/S%.2dW%.3d.hgt", -$demfileN, -$demfileE); }
+    if   ($demfileN >= 0 && $demfileE >= 0){ $path = sprintf("./dem/N%.2dE%.3d.hgt", $demfileN,  $demfileE); }
+    elsif($demfileN >= 0 && $demfileE <  0){ $path = sprintf("./dem/N%.2dW%.3d.hgt", $demfileN, -$demfileE); }
+    elsif($demfileN  < 0 && $demfileE >= 0){ $path = sprintf("./dem/S%.2dE%.3d.hgt", -$demfileN, $demfileE); }
+    else                                   { $path = sprintf("./dem/S%.2dW%.3d.hgt", -$demfileN, -$demfileE); }
 
     say STDERR "Reading DEM '$path'";
     if( ! -e $path )
     {
-	warn "DEM '$path' not found. All of its elevations will read as 0";
+	warn "DEM '$path' not found. No height AGL will be available";
+	warm " ** you can download dem from https://dds.cr.usgs.gov/srtm/version2_1/SRTM3/ **";
 	return 0;
     }
 
-    # I read the DEM on disk into the piddle, then flip the endianness of the
-    # data. I wouldn't have to copy anything if the data was little-endian to
-    # start with; I'd just mmap into the piddle.
+    # Read the DEM on disk into the piddle, then flip the endianness of the
+    # data. 
     open my $fd, '<', $path;
     my $odem;
     sysread( $fd, $odem, $W*$W*2, 0 );
@@ -725,10 +726,9 @@ sub readDEM
     ${$dem->get_dataref} = pack( "s*", unpack("s>*", $odem));
     $dem->upd_data;
 
-    # I also convert to floating point. Turns out the PDL interpolation routines
+    # Also convert to floating point. Turns out the PDL interpolation routines
     # don't work with integers
     return $dem->float;
-#    return $dem;
 }
 
 
