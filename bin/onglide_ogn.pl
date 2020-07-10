@@ -455,12 +455,31 @@ sub fetchCompetitions {
     my @t = gmtime($now);
     my $year = $t[5]-100;
 
-    # find the scoring files so we know if it's a real competition or not
-    for my $file (glob "/home/melissa/comps/d*/$year/scoring_files") {
-	$file =~ /comps\/d([a-zA-Z0-9_-]+)\/$year/;
-	my $database = "d$1$year";
-	my $site = $1;
+    open( FH, '../.env.local' ) || die "unable to open ../.env.local to read db configuration";
 
+    my ($database,$host,$user,$pw,$site);
+
+    while( my $l = <FH> ) {
+	if( $l =~ m/^MYSQL_([A-Z_]+)=(.*)$/ ) {
+	    my ($key,$value) = ($1,$2);
+	    $database = $value if( $key eq 'DATABASE' ) ;
+	    $host = $value if( $key eq 'HOST' );
+	    $user = $value if( $key eq 'USER' );
+	    $pw = $value if( $key eq 'PASSWORD' );
+	}
+	if( $l =~ m/^WEBSITENAME=(.*)$/ ) {
+	    $site = $1;
+	}
+    }
+    close(FH);
+
+    if( !$site || !$database || !$host || !$user || !$pw ) {
+	die "missing config, need MYSQL_(DATABASE|HOST|USER|PASSWORD) + WEBSITENAME in ../.env.local";
+    }
+    
+    # this works as a loop but the configuration above does not.  If you want to change this it's possible but
+    # as the next.js app doesn't support it there may not be much point
+    {
 	my $db;
 	my $is = $competitions{$database};
 	
@@ -476,7 +495,7 @@ sub fetchCompetitions {
 
 	# if we don't have a connection then we should reconnect
 	if( ! $db ) {
-	    $db = DBI->connect( "dbi:mysql:database=$database;host=dbhost;port=3306", "dbuser", "S3v3nC", { PrintError => 0 } ) || next;
+	    $db = DBI->connect( "dbi:mysql:database=$database;host=$host", $user, $pw, { PrintError => 0 } ) || next;
 	}
 
 	# check if the competition has ended using local times	
