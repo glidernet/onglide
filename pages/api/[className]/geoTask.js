@@ -52,8 +52,6 @@ export default async function taskHandler( req, res) {
                              }
                            });
 
-    console.log( task );
-
     // Check distances (not used at present)
 //    const taskLength = calculateTaskLength( tasklegs );
 
