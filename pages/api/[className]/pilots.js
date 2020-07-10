@@ -34,9 +34,8 @@ export default async function taskHandler( req, res) {
 	  CASE
 	    WHEN turnpoints = -1 THEN "Before Start, 0 tps"
 	    WHEN turnpoints = 0 THEN "After Start, 0 tps"
-	    ELSE concat('After ',(select name from global.turnpoints, taskleg, tasks
-	                                      WHERE trigraph = ntrigraph and
-	                                        tasks.flown = 'Y' and tasks.taskid = taskleg.taskid and
+	    ELSE concat('After ',(select nname from taskleg, tasks
+	                                      WHERE tasks.flown = 'Y' and tasks.taskid = taskleg.taskid and
 	                                        legno = turnpoints and tasks.datecode=pr.datecode and
 	                                        taskleg.class=pr.class),
 	                ', ', turnpoints, ' tps' )
