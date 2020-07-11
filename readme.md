@@ -10,7 +10,7 @@
 #### Steps
 
 - create a database and a user with the following rights
-> grant insert,update,delete,select on dsample19.* to reactuser@'xx.xx.xx.xx' identified by 'some-good-password';
+> grant insert,update,delete,execute,select on dsample19.* to reactuser@'xx.xx.xx.xx' identified by 'some-good-password';
 
 - load the database sql
 - load the stored procedures
