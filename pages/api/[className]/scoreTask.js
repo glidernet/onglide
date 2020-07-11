@@ -212,6 +212,9 @@ export default async function scoreTask( req, res ) {
     const profiled = process.hrtime(startProfiling);
     console.info('Scoring time (elapsed): %d seconds', Math.round(1000*(profiled[0] + (profiled[1] / 1000000000)))/1000 );
 
+    // How long should it be cached
+    res.setHeader('Cache-Control','max-age=30');
+
     // Return the results, this returns basically the same as the pilot
     // API call except it will be enriched with results if we have any
     res.status(200)

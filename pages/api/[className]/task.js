@@ -62,7 +62,7 @@ export default async function taskHandler( req, res) {
           WHERE classes.class= ${className}
     `);
 
-    // How long should it be cached - 60 seconds is goo
+    // How long should it be cached - 60 seconds is good
     res.setHeader('Cache-Control','max-age=60');
 
     // And we succeeded - here is the json

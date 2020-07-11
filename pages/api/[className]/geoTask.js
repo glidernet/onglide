@@ -72,7 +72,7 @@ export default async function taskHandler( req, res) {
     };
     
     // How long should it be cached
-//    res.setHeader('Cache-Control','max-age=600');
+    res.setHeader('Cache-Control','max-age=600');
 
     // And we succeeded - here is the json
     res.status(200)
