@@ -54,7 +54,7 @@ export default async function taskHandler( req, res ) {
 	    // If we only had one point then we will make it into a segment
 	    // by duplicating the point
 	    if( lastSegment.length == 1 ) {
-		lastSegment.push(lastSegment[0]);
+		lastSegment.push([lastSegment[0][0]+0.0005,lastSegment[0][1]+0.0005]);
 	    }
 
 	    // Add to the list
