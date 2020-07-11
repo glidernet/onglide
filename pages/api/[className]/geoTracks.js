@@ -45,13 +45,13 @@ export default async function geoTracks( req, res) {
              WHERE tp.datecode=${datecode} AND tp.class=${className} ORDER by t DESC`);
 
     // Group them by comp number, this is quicker than multiple sub queries from the DB
-    const grouped = _groupby( points, 'compno' );//function(p) { return p.compno } );
-
+    const grouped = _groupby( points, 'compno' );
 
     const collection = _mapvalues( grouped, (points) => {
 	if( points.length > 1 ) {
 	    const pilotGeoJSON = {
 		'type': 'LineString',
+		'properties': { 'c': points[0].compno, 't': points[0].t },
 		'coordinates': points.map( (p) => { return [ p.lng, p.lat ]; } ) ,
 	    };   
 	    return pilotGeoJSON;
@@ -92,8 +92,9 @@ export default async function geoTracks( req, res) {
 					       [{ 'type': 'Feature',
 						  properties: { 'i': 'circle',
 								'c': key,
-								'v':(latest-points[0].t>300?'grey':'green'),
+								'v':(latest-points[0].t>historyLength?'grey':'green'),
 								'x': points[0].a + 'm (' + points[0].g + 'm agl)',
+								't': points[0].t,
 							      },
 						  geometry: { 'type': 'Point',
 							      'coordinates': [points[0].lng,points[0].lat]

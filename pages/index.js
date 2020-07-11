@@ -103,7 +103,7 @@ function CombinePage() {
             <Container fluid>
                 <Row>
                     <Col sm={7}>
-			<TaskMap vc={className} selectedPilot={selectedPilot}/>
+			<TaskMap vc={className} selectedPilot={selectedPilot} datecode={'76Q'}/>
 		    </Col>
                     <Col>
                         <TaskDetails vc={className}/>
