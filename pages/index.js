@@ -92,7 +92,6 @@ function CombinePage() {
     const { className } = router.query;
     const { comp, isLoading, error } = useContest();
     const [ selectedPilot, setSelectedPilot ] = useState( '' );
-    console.log("x0x0x0x0x");
     
     if (isLoading) return <Spinner />
     if (error) return <Error />
