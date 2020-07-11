@@ -146,8 +146,7 @@ BEGIN
 				UPDATE taskleg
 					   set length = ROUND(pythagkm,1),
 					   	   bearing = bearing,
-						   Hi = _hi,
-						   wleglength = ROUND(wleglength,1)
+						   Hi = _hi
 					WHERE taskid = _taskid and legno=_legno;
 
 			ELSE
@@ -158,7 +157,6 @@ BEGIN
 					   set length = 0,
 					   	   bearing = 0,
 						   Hi = 0,
-						   wleglength = 0
 					WHERE taskid = _taskid and legno = _legno;
 	
 			END IF;
@@ -180,85 +178,6 @@ END;
 
 //
 
---
--- This goes through each handicap in a class and updates pilot result
--- with the correct htaskdistance
---
-DROP PROCEDURE IF EXISTS determinehcaplengths //
-
-CREATE PROCEDURE determinehcaplengths ( IN _class CHAR(15) ) DETERMINISTIC
-BEGIN
-
-SET @@session.sql_notes = 0;
-DROP TEMPORARY TABLE IF EXISTS __hcaps;
-CREATE TEMPORARY TABLE __hcaps AS
-SELECT distinct handicap FROM pilots WHERE class = _class;
-SET @@session.sql_notes = 1;
-
-BEGIN
-    DECLARE done BOOLEAN default FALSE;
-    DECLARE _hcap DOUBLE(4,1);
-    DECLARE cur CURSOR FOR SELECT handicap FROM __hcaps;
-    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done := TRUE;
-      
-    OPEN cur;
-
-    testLoop: LOOP
-    FETCH cur INTO _hcap;
-       	  IF done THEN
-              LEAVE testLoop;
-    	  END IF;
-
-	  call wcapdistancebyhcap( _class, _hcap );
-    END LOOP testLoop;
-
-    CLOSE cur;
-END;
-END;
-//
-
--- Actually do the adjustment
-DROP PROCEDURE IF EXISTS wcapdistancebyhcap // 
-CREATE PROCEDURE wcapdistancebyhcap (  IN _class CHAR(15), IN _handicap DOUBLE(4,1) ) DETERMINISTIC 
-BEGIN
-
-	DECLARE _taskid INT;
-    	DECLARE _datecode CHAR(3);
-	DECLARE _Hi, _length FLOAT;
-	DECLARE htasklength FLOAT DEFAULT 0;
-
-	SET _taskid = -1;
-
-	-- get the turnpoints, CSV list
-	SELECT taskid, tasks.datecode
-		INTO _taskid, _datecode
-		FROM tasks,compstatus
-		WHERE tasks.class=compstatus.class AND tasks.flown='Y'
-		  AND tasks.datecode=compstatus.datecode AND tasks.class=_class
-		  AND tasks.type ='S';
-
-	IF _taskid != -1 THEN
-
-	-- loop through by handicap
-	select SUM((100.0*length)/GREATEST((_handicap+Hi),25))
-	  INTO htasklength
-	from taskleg where taskid=_taskid;
-
-	insert into msg values ( concat( htasklength, ":", _handicap ));
-
-	-- update all of the pilots with this handicap
-	UPDATE pilotresult, pilots
-		SET htaskdistance = htasklength
-		WHERE cast( (handicap*10) as unsigned )= cast( (_handicap*10) as unsigned )
-			AND pilots.compno = pilotresult.compno
-			AND pilotresult.class = _class
-			AND datecode = _datecode;
-
-	END IF;
-
-END;
-
-//
 
 --
 -- 

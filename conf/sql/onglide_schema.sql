@@ -45,7 +45,7 @@ CREATE TABLE `comprules` (
   `hcapmodifiers` char(1) DEFAULT 'N',
   `grandprixstart` char(1) DEFAULT 'N',
   PRIMARY KEY (`country`,`name`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='See Scoring section of rules for details';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -84,7 +84,7 @@ CREATE TABLE `compdayshelper` (
   `year` int(11) DEFAULT NULL,
   `month` int(11) DEFAULT NULL,
   `day` int(11) DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -95,56 +95,21 @@ DROP TABLE IF EXISTS `competition`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `competition` (
-  `name` varchar(60) DEFAULT NULL,
-  `sitename` varchar(100) DEFAULT NULL,
-  `start` date DEFAULT NULL,
+  `name` varchar(60) DEFAULT NULL COMMENT 'Competition name',
+  `sitename` varchar(100) DEFAULT NULL COMMENT 'Site name',
+  
+  `start` date DEFAULT NULL COMMENT 'Displayed as date range',
   `end` date DEFAULT NULL,
-  `shortname` char(15) DEFAULT NULL,
-  `club` varchar(60) DEFAULT NULL,
-  `organiseremail` varchar(200) DEFAULT NULL,
-  `controlemail` varchar(200) DEFAULT NULL,
-  `frameheader` text,
-  `bodystyle` text,
-  `maintablestyle` text,
-  `localrulesavailable` varchar(200) DEFAULT NULL,
-  `maxentries` int(11) DEFAULT '50',
-  `deposit` float DEFAULT NULL,
-  `depositdue` date DEFAULT NULL,
-  `total` float DEFAULT NULL,
-  `totaldue` date DEFAULT NULL,
-  `launches` float DEFAULT NULL,
-  `paypalemail` char(100) DEFAULT NULL,
-  `paymentaddress` text,
-  `notes` text,
-  `declaration` text,
-  `listen` char(1) DEFAULT 'N',
-  `hometp` char(4) DEFAULT 'DUN',
-  `previousyears` text,
-  `siteroot` varchar(120) DEFAULT NULL,
-  `currentyear` char(2) DEFAULT NULL,
-  `gallery` text,
-  `webcam` text,
-  `twitter` text,
-  `flickrset` text,
-  `flickrowner` text,
-  `handicaps` char(1) DEFAULT 'Y',
-  `control` char(12) DEFAULT NULL,
-  `gridorderavailable` char(1) DEFAULT 'Y',
-  `seeyoubasename` text,
+  
   `countrycode` char(2) DEFAULT 'UK',
-  `tzoffset` int(11) DEFAULT NULL,
-  `websubmission` char(1) DEFAULT 'N',
-  `tz` char(6) DEFAULT '+1:00',
-  `twitwidget` char(60) DEFAULT NULL,
-  `capturecars` char(1) DEFAULT 'N',
-  `capturederigging` char(1) DEFAULT 'N',
-  `requirefullpayment` char(1) DEFAULT 'N',
-  `compstatus` char(1) DEFAULT 'Y',
-  `noresults` char(1) DEFAULT 'Y',
-  `mainwebsite` varchar(120) DEFAULT NULL,
-  `lt` float DEFAULT NULL,
-  `lg` float DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+  
+  `tzoffset` int(11) DEFAULT NULL COMMENT 'TZ offset from GMT in seconds',
+  `tz` char(6) DEFAULT '+1:00' COMMENT 'TZ offset in database units',
+  
+  `mainwebsite` varchar(240) DEFAULT NULL COMMENT 'Used when clicking on comp name to return to primary website',
+  `lt` float DEFAULT NULL COMMENT 'launch/landing location',
+  `lg` float DEFAULT NULL COMMENT 'launch/landing location'
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Main settings for the competition';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -155,25 +120,28 @@ DROP TABLE IF EXISTS `compstatus`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `compstatus` (
+  `class` char(15) NOT NULL,
   `datecode` char(3) DEFAULT NULL COMMENT 'current contest date code for this class',
+  
   `status` char(1) DEFAULT '?' COMMENT 'what is happening with this class (?=prereg,W=waitlist,X=confirm reg,P=prebrief,B=afterbrief,L=launched,S=startopen/flying,R=all reported,H=all home,Z=scrubbed,O=comp over',
   `briefing` time DEFAULT '10:00:00' COMMENT 'what time is briefing',
   `launching` time DEFAULT '11:00:00' COMMENT 'what time is launching',
   `gridbefore` char(1) DEFAULT 'Y' COMMENT 'Y/N grid before or after briefing',
-  `probability` int(11) DEFAULT NULL,
-  `weather` varchar(300) DEFAULT NULL,
+  
   `resultsdatecode` char(3) DEFAULT NULL COMMENT 'what date is scoring up to with uploading, results after this date wont be displayed',
   `task` char(1) DEFAULT 'A' COMMENT 'selected task',
-  `class` char(15) NOT NULL,
-  `starttime` time DEFAULT NULL,
+  
+  `starttime` time DEFAULT NULL COMMENT 'Startline open time',
   `startheight` int(11) DEFAULT '0',
-  `winddir` int(11) DEFAULT '0',
-  `windspeed` int(11) DEFAULT '0',
+  
+  `winddir` int(11) DEFAULT '0' COMMENT 'Used for windicapping in UK, leave both 0 for no windicapping',
+  `windspeed` int(11) DEFAULT '0' COMMENT 'Used for windicapping in UK, leave both 0 for no windicapping',
+  
   `compdate` date DEFAULT NULL,
   `briefdc` char(4) DEFAULT NULL,
   `grid` char(20) DEFAULT '',
   UNIQUE KEY `class` (`class`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Current competition status, one row per class';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -224,7 +192,7 @@ CREATE TABLE `errorlog` (
   `queryuser` char(30) DEFAULT NULL,
   `extra1` text,
   `extra2` text
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 
@@ -249,7 +217,7 @@ CREATE TABLE `images` (
   PRIMARY KEY (`filename`),
   KEY `typeindex` (`type`),
   KEY `keyidx` (`type`,`keyid`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -270,7 +238,7 @@ CREATE TABLE `logindetails` (
   `originalpw` text,
   `mobilekey` text NOT NULL,
   PRIMARY KEY (`username`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -282,7 +250,7 @@ DROP TABLE IF EXISTS `msg`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `msg` (
   `msg` text
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 
@@ -290,6 +258,7 @@ CREATE TABLE `msg` (
 -- Table structure for table `pilotresult`
 --
 
+-- This table 
 DROP TABLE IF EXISTS `pilotresult`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -298,43 +267,49 @@ CREATE TABLE `pilotresult` (
   `datecode` char(3) NOT NULL,
   `compno` char(4) NOT NULL,
   `pilot` int(11) DEFAULT NULL,
-  `takeoff` time DEFAULT NULL,
-  `start` time DEFAULT NULL,
-  `finish` time DEFAULT NULL,
-  `duration` time DEFAULT NULL,
-  `distance` float DEFAULT NULL,
-  `loLAT` float DEFAULT NULL,
-  `loLONG` float DEFAULT NULL,
-  `turnpoints` int(11) DEFAULT NULL,
-  `loNotes` varchar(6000) DEFAULT NULL,
-  `status` char(1) DEFAULT NULL,
-  `hspeed` float DEFAULT NULL,
-  `hdistance` float DEFAULT NULL,
-  `htaskdistance` float DEFAULT NULL,
-  `penalty` int(11) DEFAULT NULL,
+
+  `start` time DEFAULT NULL COMMENT 'start time from scoring, overrides ogn determined one',
+  `finish` time DEFAULT NULL COMMENT 'finish time from scoring, overrides ogn',
+  `duration` time DEFAULT NULL COMMENT 'duration from start to finish, only set when a finish occurs in scoring',
+
+  `status` char(1) DEFAULT NULL COMMENT 'pilot status, see table pilotstatushelper',
+  `scoredstatus` char(1) DEFAULT 'S' COMMENT 'flight status from scoring, used with status, S=start,F=finish,H=home',
+
+  `speed` float DEFAULT NULL COMMENT 'actual speed - scoring',
+  `hspeed` float DEFAULT NULL COMMENT 'handicapped speed - scoring',
+  `distance` float DEFAULT NULL COMMENT 'actual distance - scoring',
+  `hdistance` float DEFAULT NULL COMMENT 'handicapped distance - scoring' ,
+
+  `penalty` int(11) DEFAULT NULL COMMENT 'any penalty points - scoring',
   `daypoints` int(11) DEFAULT '0',
   `dayrank` int(11) DEFAULT NULL,
   `totalpoints` int(11) DEFAULT '0',
   `totalrank` int(11) DEFAULT NULL,
+  `prevtotalrank` int(11) DEFAULT NULL,
+  
+  `igcavailable` char(1) DEFAULT 'Y' COMMENT 'is file for download - legacy',
+  
+  `datafromscoring` char(1) NOT NULL DEFAULT 'N' COMMENT 'results are from scoring',
+  
+  `forcetp` int(11) DEFAULT NULL COMMENT 'last turnpoint rounded, used by UI to override when a sector has not been detected due to poor coverage',
+  `forcetptime` datetime DEFAULT NULL,
+  
+  `turnpoints` int(11) DEFAULT NULL COMMENT 'landout status record, these are from old UI but may be useful in the future',
+  `loLAT` float DEFAULT NULL,
+  `loLONG` float DEFAULT NULL,
+  `loNotes` varchar(6000) DEFAULT NULL,
   `loReported` datetime DEFAULT NULL,
   `statuschanged` datetime DEFAULT NULL,
-  `speed` float DEFAULT NULL,
   `loOriginal` time DEFAULT NULL,
   `loNear` varchar(60) DEFAULT NULL,
   `gliderok` char(1) DEFAULT '',
   `youok` char(1) DEFAULT '',
-  `igcavailable` char(1) DEFAULT 'Y',
-  `land` time DEFAULT NULL,
-  `scoredstatus` char(1) DEFAULT 'S',
-  `datafromscoring` char(1) NOT NULL DEFAULT 'N',
-  `prevtotalrank` int(11) DEFAULT NULL,
-  `forcetp` int(11) DEFAULT NULL,
-  `forcetptime` datetime DEFAULT NULL,
+  
   PRIMARY KEY (`class`,`datecode`,`compno`),
   KEY `class` (`class`),
   KEY `datecode` (`datecode`),
   KEY `compno` (`compno`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Stores results for a pilot along with landout and status information';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -345,50 +320,37 @@ DROP TABLE IF EXISTS `pilots`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `pilots` (
+  `class` char(15) NOT NULL COMMENT 'classid',
+  `compno` char(4) NOT NULL,
   `fai` int(11) DEFAULT '0',
   `firstname` char(30) DEFAULT NULL,
   `lastname` char(30) DEFAULT NULL,
   `homeclub` char(80) DEFAULT NULL,
+
   `username` varchar(160) DEFAULT NULL,
-  `postcode` char(9) DEFAULT NULL,
-  `mobile` char(15) DEFAULT NULL,
   `email` varchar(160) DEFAULT NULL,
-  `address` varchar(300) DEFAULT NULL,
-  `totalhours` int(11) DEFAULT NULL,
-  `othercomps` varchar(255) DEFAULT NULL,
-  `displayother` char(1) DEFAULT 'N',
-  `rtlexpiry` date DEFAULT NULL,
-  `mapchecked` char(1) DEFAULT 'N',
-  `insurancechecked` char(1) DEFAULT 'N',
+  
   `registered` char(1) DEFAULT 'N',
-  `paid` char(1) DEFAULT 'N',
-  `kinname` varchar(40) DEFAULT NULL,
-  `kinrelationship` varchar(40) DEFAULT NULL,
-  `kinaddress` varchar(300) DEFAULT NULL,
-  `kinnumbers` varchar(80) DEFAULT NULL,
-  `compno` char(4) NOT NULL,
+  `registereddt` datetime DEFAULT NULL,
+  
   `p2` char(40) DEFAULT NULL,
-  `glidertype` char(30) DEFAULT 'CHOOSE',
+  `p2fai` int(11) DEFAULT NULL,
+  
+  `glidertype` char(30) DEFAULT 'Unknown',
   `wingspan` float DEFAULT NULL,
-  `class` char(15) NOT NULL DEFAULT '',
   `handicap` double(4,1) DEFAULT NULL,
-  `loggersticker` char(1) DEFAULT NULL,
-  `faichecked` char(1) DEFAULT NULL,
   `turbo` char(1) DEFAULT NULL,
-  `participating` char(1) DEFAULT NULL,
-  `gridorder` int(11) DEFAULT NULL,
+  
+  `participating` char(1) DEFAULT NULL COMMENT 'Y=participant,N=H/C,W=withdrawn',
+
   `country` char(2) DEFAULT 'GB',
   `image` varchar(20) DEFAULT NULL,
-  `registereddt` datetime DEFAULT NULL,
+  
   `greg` char(8) DEFAULT NULL,
   `fairings` char(1) DEFAULT '?',
   `winglets` char(1) DEFAULT '?',
-  `p2fai` int(11) DEFAULT NULL,
   `turbulator` char(1) DEFAULT '?',
   `flarm` char(1) DEFAULT NULL,
-  `twitter` char(30) DEFAULT NULL,
-  `vehicles` varchar(300) DEFAULT NULL,
-  `derigging` char(1) DEFAULT '?',
   `mauw` int(11) DEFAULT NULL,
   PRIMARY KEY (`class`,`compno`),
   UNIQUE KEY `username` (`username`),
@@ -423,27 +385,29 @@ DROP TABLE IF EXISTS `taskleg`;
 CREATE TABLE `taskleg` (
   `class` char(15) NOT NULL DEFAULT '',
   `datecode` char(3) NOT NULL,
-  `taskid` int(11) NOT NULL,
-  `legno` int(11) NOT NULL DEFAULT '0',
-  `length` float DEFAULT NULL,
+  `taskid` int(11) NOT NULL COMMENT 'links to tasks table',
+  `legno` int(11) NOT NULL DEFAULT '0' COMMENT '0=start,1=tp1 etc',
+
+  `ntrigraph` char(4) DEFAULT NULL COMMENT 'trigraph/short name for tp',
+  `nname` char(80) DEFAULT NULL COMMENT 'long name for tp',
+
+  `length` float DEFAULT NULL COMMENT 'leg length km',
   `bearing` int(11) DEFAULT NULL,
-  `nlat` float DEFAULT NULL,
-  `nlng` float DEFAULT NULL,
-  `Hi` float DEFAULT NULL,
-  `ntrigraph` char(4) DEFAULT NULL,
-  `nname` char(80) DEFAULT NULL,
-  `wleglength` float DEFAULT NULL,
-  `type` enum('sector','line','thistle') DEFAULT NULL,
-  `direction` enum('fixed','np','symmetrical','pp','sp') DEFAULT NULL,
-  `r1` float DEFAULT NULL,
-  `a1` int(11) DEFAULT NULL,
-  `r2` float DEFAULT NULL,
-  `a2` int(11) DEFAULT NULL,
-  `a12` float DEFAULT NULL,
-  `quicktype` char(20) DEFAULT 'BGA Sector',
+  `nlat` float DEFAULT NULL COMMENT 'location of tp',
+  `nlng` float DEFAULT NULL COMMENT 'location of tp',
+  `Hi` float DEFAULT NULL COMMENT 'handicap/windicap adjustment for the leg',
+
+  `type` enum('sector','line','thistle') DEFAULT NULL COMMENT 'sector type',
+  `direction` enum('fixed','np','symmetrical','pp','sp') DEFAULT NULL COMMENT 'how the center of the sector is calculated - SeeYou',
+  `r1` float DEFAULT NULL COMMENT 'As per SeeYou settings',
+  `a1` int(11) DEFAULT NULL COMMENT 'As per SeeYou settings',
+  `r2` float DEFAULT NULL COMMENT 'As per SeeYou settings',
+  `a2` int(11) DEFAULT NULL COMMENT 'As per SeeYou settings',
+  `a12` float DEFAULT NULL COMMENT 'As per SeeYou settings',
+
   PRIMARY KEY (`taskid`,`legno`),
   KEY `class` (`class`,`datecode`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='One row per TP, leg 0 is before start(tp0), 1 from start(tp0) to tp1, last is finish';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -456,15 +420,19 @@ DROP TABLE IF EXISTS `tasks`;
 CREATE TABLE `tasks` (
   `datecode` char(3) NOT NULL,
   `class` char(15) DEFAULT NULL,
-  `task` char(1) DEFAULT NULL,
-  `flown` char(1) DEFAULT 'N',
+  `taskid` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Links to taskleg table',
+  
+  `task` char(1) DEFAULT NULL COMMENT 'Task letter, eg A B C',
+  `flown` enum('Y','N') DEFAULT 'N' COMMENT 'Must be set to Y to be displayed!',
   `description` text,
-  `distance` float DEFAULT NULL,
-  `hdistance` float DEFAULT NULL,
-  `duration` time DEFAULT NULL,
-  `type` char(1) DEFAULT 'S',
-  `taskid` int(11) NOT NULL AUTO_INCREMENT,
-  `maxmarkingdistance` float DEFAULT NULL,
+
+  `type` enum('S','A','D') DEFAULT 'S' COMMENT 'Speed, AAT, Handicapped Distance',
+
+  `distance` float DEFAULT NULL COMMENT 'Actual distance',
+  `hdistance` float DEFAULT NULL COMMENT 'distance at handicap 100 aka windicapped distance',
+  `maxmarkingdistance` float DEFAULT NULL COMMENT 'Distance for lowesthandicapped glider',
+  
+  `duration` time DEFAULT NULL COMMENT 'AAT time',
   PRIMARY KEY (`taskid`),
   UNIQUE KEY `integrity` (`class`,`datecode`,`task`),
   KEY `class` (`class`)
@@ -486,7 +454,7 @@ CREATE TABLE `tracker` (
   `trackerid` text,
   `class` char(15) NOT NULL DEFAULT '',
   PRIMARY KEY (`class`,`compno`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -503,7 +471,7 @@ CREATE TABLE `trackerhistory` (
   `greg` char(12) DEFAULT NULL,
   `launchtime` time DEFAULT NULL,
   `method` enum('none','startline','pilot','ognddb') DEFAULT 'none'
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -521,44 +489,10 @@ CREATE TABLE `trackpoints` (
   `lng` float NOT NULL,
   `altitude` int(11) NOT NULL,
   `agl` int(11) NOT NULL,
-  `t` int(11) NOT NULL DEFAULT '0',
+  `t` int(11) NOT NULL DEFAULT '0' COMMENT 'timestamp epoch',
   UNIQUE KEY `cda` (`datecode`,`class`,`compno`,`t`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `lostatushelper`
---
-
-DROP TABLE IF EXISTS `lostatushelper`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `lostatushelper` (
-  `status` char(1) NOT NULL DEFAULT '',
-  `briefname` char(14) NOT NULL,
-  `description` char(40) DEFAULT NULL,
-  `image` varchar(100) DEFAULT 'outline.gif',
-  `icon` char(30) DEFAULT NULL,
-  `after` char(10) NOT NULL,
-  `afterbrief` char(6) NOT NULL,
-  `actionrequired` char(1) DEFAULT NULL,
-  `summary` char(30) DEFAULT NULL,
-  `verb` text,
-  `pilotafter` char(10) DEFAULT NULL,
-  `inputrequired` char(1) DEFAULT 'N',
-  PRIMARY KEY (`status`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `lostatushelper`
---
-
-LOCK TABLES `lostatushelper` WRITE;
-/*!40000 ALTER TABLE `lostatushelper` DISABLE KEYS */;
-INSERT INTO `lostatushelper` VALUES ('-','not yet','Not Launched','trailers.jpg',NULL,'','','N',NULL,'','','N'),('Z','scrubbed','Day Scrubbed','windsock.jpg',NULL,'','','N',NULL,'','','N'),('G','grid','Grid / Launched','grid.jpg','cloud-upload','RCHWSDF/','RWHD','N','Flying','','RCLHWSD','N'),('S','started','Started','leaving.jpg','time','RCWH','RWH','N','Started','','RCLHWSD','N'),('R','reported','Reported In','InField.jpg','phone','CLOHAW','CLOH','Y','Landed Out or Home','Report Landout','CLOH','Y'),('W','a/t request','A/T Requested','tugrequest.jpg','plane time','ARCH','ARCH','Y','Landed Out or Home','Request A/T','ARCLOH','Y'),('C','enroute','Crew enroute','enroute.jpg','truck','LOH','LOH','Y','Landed Out or Home','Report Landout, Crew Enroute Already','','M'),('L','linked','Crew linked','Linked.jpg','thumbs-up-alt','OH','OH','N','Landed Out or Home','Report Landout, Crew Arrived Already','','M'),('A','a/t returning','A/T Returning','AeroTow.jpg','plane','H','H','N','Landed Out or Home','','','M'),('O','returning','Returning','mirrorview.jpg','road','H','H','N','Landed Out or Home','','','M'),('H','home','Home','beer.jpg','home','GSD','GSD','N','Landed Out or Home','Report pilot home after landout or local flying','','N'),('F','finished','Finished','finisher.jpg','trophy','HRW','HRW','N','Finished','','','N'),('D','did not fly','Didn\'t fly','trailers.jpg','anchor','GSH','GSH','N',NULL,'Pilot did not take a launch','','N'),('/','withdrawn','Withdrawn','trailers.jpg','trash','','','N',NULL,'','','N');
-/*!40000 ALTER TABLE `lostatushelper` ENABLE KEYS */;
-UNLOCK TABLES;
 
 
 --
@@ -575,7 +509,7 @@ CREATE TABLE `pilotlostatushelper` (
   `image` varchar(100) DEFAULT 'outline.gif',
   `after` char(10) NOT NULL,
   PRIMARY KEY (`status`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -600,7 +534,7 @@ CREATE TABLE `sectortypes` (
   `name` char(20) DEFAULT NULL,
   `defaults` char(40) DEFAULT NULL,
   KEY `st` (`countrycode`,`name`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
