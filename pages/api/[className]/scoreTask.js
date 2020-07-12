@@ -11,11 +11,11 @@ import { useRouter } from 'next/router'
 import LatLong from '../../../lib/LatLong';
 import { point,lineString } from '@turf/helpers';
 
-import _groupby  from 'lodash/groupby'
-import _map  from 'lodash/map'
-import _foreach  from 'lodash/foreach'
-import _clone  from 'lodash/clone'
-import _maxby  from 'lodash/maxby'
+import _groupby  from 'lodash.groupby'
+import _map  from 'lodash.map'
+import _foreach  from 'lodash.foreach'
+import _clone  from 'lodash.clone'
+import _maxby  from 'lodash.maxby'
 
 import Keyv from 'keyv'
 
@@ -83,14 +83,14 @@ export default async function scoreTask( req, res ) {
 	(!rawpilots || ! rawpilots.ts || (rawpilots.ts+600*1000)<now )) {
 	
 	// and if it's stale then get from the api
-	task = await fetcher('http://localhost:3000/api/'+className+'/task')
+	task = await fetcher('http://127.10.0.2:3000/api/'+className+'/task')
 	if( ! task || ! task.task || ! task.task.type ) {
 	    console.log( 'no task for class: ' + className );
 	    res.status(404).json({error:'no task for class: ' + className});
 	    return;
 	}
 
-	rawpilots = await fetcher('http://localhost:3000/api/'+className+'/pilots')
+	rawpilots = await fetcher('http://127.10.0.2:3000/api/'+className+'/pilots')
 	if( ! rawpilots || ! rawpilots.pilots || ! rawpilots.pilots.length ) {
 	    console.log( 'no pilots for class: ' + className );
 	    res.status(404).json({error:'no pilots for class: ' + className});
@@ -118,6 +118,13 @@ export default async function scoreTask( req, res ) {
              WHERE datecode=${task.contestday.datecode} AND class=${className}
             ORDER BY t DESC`);
 
+/*    if( ! rawpoints || rawpoints.length == 0 ) {
+	console.log( "no tracking yet" );
+	res.status(200)
+	    .json({pilots:{}});
+	return;
+    } */
+
     // We need to make sure our cache is valid - this is both to confirm it hasn't
     // gone back in time more than our check interval (for running sample site)
     // and that the taskid hasn't changed (eg from a new contest day)
@@ -131,7 +138,7 @@ export default async function scoreTask( req, res ) {
 	    .json({error:'stale cache'});
 	return;
     }
-    kv.set('cacheTScheck',rawpoints[0].t);
+    kv.set('cacheTScheck',(rawpoints[0]&&rawpoints[0].t)||0);
     kv.set('cacheTaskId',task.task.taskid);
     
     // Group them by comp number, this is quicker than multiple sub queries from the DB

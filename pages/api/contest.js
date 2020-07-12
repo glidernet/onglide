@@ -7,7 +7,7 @@ export default async function competitionHandler( req, res) {
     const competition = await db.query(escape`
          SELECT name, 
                 DATE_FORMAT( start, "%M %D" ) start, DATE_FORMAT( end, "%M %D" ) end, 
-                club,
+                sitename club,
                 tzoffset,
                 mainwebsite,
                 lt, lg

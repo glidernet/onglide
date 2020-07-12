@@ -8,8 +8,8 @@ const db = require('../../../lib/db')
 const escape = require('sql-template-strings')
 
 import { useRouter } from 'next/router'
-import _groupby  from 'lodash/groupby'
-import _mapvalues  from 'lodash/mapvalues'
+import _groupby  from 'lodash.groupby'
+import _mapvalues  from 'lodash.mapvalues'
 
 
 

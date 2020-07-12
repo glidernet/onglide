@@ -33,16 +33,8 @@ const baseUrl = 'https://sample.onglide.com';
 function IncludeJavascript() {
     return (
         <>
-            <script src="https://sample.onglide.com/globalfile/dijkstras.js"/>
-            <script src="https://sample.onglide.com/globalfile/main-task-scores.js"/>
-            <script src="https://sample.onglide.com/globalfile/LatLong.js"/>
-            <script src="https://sample.onglide.com/globalfile/local-storage.js"/>
-            <script src="https://sample.onglide.com/globalfile/mgrs.min.js"/>
-            <script src="https://flarmrange.onglide.com/files/tinycolor.js"/>
-            <script src="https://sample.onglide.com/globalfile/maptiles2.js"/>
-            <script src="https://sample.onglide.com/globalfile/blog.js"/>
-            <link rel="stylesheet" href="http://sample.onglide.com/globalfile/bootstrap/css/font-awesome.min.css"/>
-	    <link href='https://api.mapbox.com/mapbox-gl-js/v1.11.0/mapbox-gl.css' rel='stylesheet' />
+            <link rel="stylesheet" href="/bootstrap/css/font-awesome.min.css"/>
+	    <link href='//api.mapbox.com/mapbox-gl-js/v1.11.0/mapbox-gl.css' rel='stylesheet' />
         </>
     );
 }
@@ -64,9 +56,6 @@ function Menu(props) {
 						 </Nav.Link>
 					     </Nav.Item>);
 
-    console.log('----');
-    console.log(classes);
-    
     return (
 	<>
 	    <Navbar bg="light" fixed="top">
@@ -74,7 +63,7 @@ function Menu(props) {
 		    {classes}
 		</Nav>
 		<Navbar.Collapse id="responsive-navbar-nav">
-		    <Navbar.Brand href={comp.competition.mainsite}>
+		    <Navbar.Brand href={comp.competition.mainwebsite}>
 			<img width="15px"/>
 			{comp.competition.name}<span style={{fontSize: '70%'}}>{comp.competition.start} to {comp.competition.end}</span>
 		    </Navbar.Brand>
@@ -89,12 +78,15 @@ function CombinePage() {
 
     const router = useRouter()
     console.log( router.query );
-    const { className } = router.query;
+    let { className } = router.query;
     const { comp, isLoading, error } = useContest();
-    const [ selectedPilot, setSelectedPilot ] = useState( '' );
-    
-    if (isLoading) return <Spinner />
-    if (error) return <Error />
+    const [ selectedPilot, setSelectedPilot ] = useState();
+    if (isLoading) return <Spinner />;
+    if (error) return <Error />;
+
+    if( ! className ) {
+	className = comp.classes[0].class;
+    }
 
     return (
 	<>
@@ -103,7 +95,7 @@ function CombinePage() {
             <Container fluid>
                 <Row>
                     <Col sm={7}>
-			<TaskMap vc={className} selectedPilot={selectedPilot} datecode={'76Q'}/>
+			<TaskMap vc={className} selectedPilot={selectedPilot} datecode={'07C'}/>
 		    </Col>
                     <Col>
                         <TaskDetails vc={className}/>

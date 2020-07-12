@@ -8,8 +8,8 @@ const db = require('../../../lib/db')
 const escape = require('sql-template-strings')
 
 import { useRouter } from 'next/router'
-import _groupby  from 'lodash/groupby'
-import _mapvalues  from 'lodash/mapvalues'
+import _groupby  from 'lodash.groupby'
+import _mapvalues  from 'lodash.mapvalues'
 
 // How far back in time to do we want to show
 const historyLength = 600;

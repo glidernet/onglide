@@ -30,6 +30,13 @@ export default async function taskHandler( req, res) {
         AND cs.datecode = tasks.datecode AND tasks.flown = 'Y' 
     `);
 
+    if( ! task.length || ! task[0].taskid ) {
+	console.log( task );
+	res.status(200)
+	    .json({tp:'', track:''});
+	return;
+    }
+
     let tasklegs = await db.query(escape`
       SELECT taskleg.*, nname name, 0 altitude
       FROM taskleg

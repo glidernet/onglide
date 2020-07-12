@@ -41,8 +41,7 @@ export default async function taskHandler( req, res) {
 	                ', ', turnpoints, ' tps' )
           END lasttp,
 	  prevtotalrank, totalrank,
-	  ROUND(hdistance,1) hdistance,
-	  ROUND(htaskdistance,1) htaskdistance
+	  ROUND(hdistance,1) hdistance
           
 			FROM pilots, pilotresult pr, compstatus cs
 			WHERE pilots.compno = pr.compno
@@ -53,6 +52,7 @@ export default async function taskHandler( req, res) {
 
     if( ! pilots || ! pilots.length ) {
 	console.log( "invalid class" );
+	console.log( pilots );
 	res.status(404).json({error: "invalid class"});
 	return;
     }
