@@ -25,6 +25,7 @@
     "lodash.mapvalues": "^4.6.0",
     "lodash.maxby": "^4.6.0",
     "lodash.sortby": "^4.7.0",
+    "lodash.sumby": "^4.6.0",
     "next": "^9.4.4",
     "react": "^16.13.1",
     "react-bootstrap": "^1.0.1",
