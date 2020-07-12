@@ -116,7 +116,7 @@ export default async function scoreTask( req, res ) {
     // Next up we will fetch a list of the pilots and their complete tracks
     // This is going to be a big query
     let rawpoints = await db.query(escape`
-            SELECT compno, t, lat, lng, altitude a
+            SELECT compno, t, lat, lng, altitude a, agl g
               FROM trackpoints
              WHERE datecode=${task.contestday.datecode} AND class=${className}
             ORDER BY t DESC`);
@@ -187,17 +187,16 @@ export default async function scoreTask( req, res ) {
     _foreach( trackers, (pilot,compno) => findStart( trackers[compno], state[compno], task.legs, points[compno] ) );
 
     // Actually score the task
-    let results = '';
     switch( task.task.type ) {
     case 'A': // Assigned Area Task
-	results = _map( points, (points,compno) => scoreAssignedAreaTask( task, trackers[compno], state[compno], points ) );
+	_map( points, (points,compno) => scoreAssignedAreaTask( task, trackers[compno], state[compno], points )  );
 	//scoreAssignedAreaTask(task.legs, trackers['WO'], points['WO']);
 	break;
     case 'S': // speed task
-	results = _map( points, (points,compno) => scoreSpeedTask( task, trackers[compno], state[compno], points ) );
+	_map( points, (points,compno) => scoreSpeedTask( task, trackers[compno], state[compno], points ) );
 	break;
     case 'D': // distance handicapped task (needs to know the maximum handicap to score it properly)
-	results = _map( points, (points,compno) => scoreDistanceHandicapTask( task, trackers[compno], state[compno], points, _maxby(trackers,'handicap') ));
+	_map( points, (points,compno) => scoreDistanceHandicapTask( task, trackers[compno], state[compno], points, _maxby(trackers,'handicap') ));
 	break;
     default:
 	const error = 'no scoring function defined for task type: ' + task.task.type;
@@ -210,8 +209,10 @@ export default async function scoreTask( req, res ) {
     // what the pilot has been scored for
     _foreach( trackers, (pilot) => {
 	if( pilot.scoredpoints && pilot.scoredpoints.length>1) pilot.scoredGeoJSON = lineString(pilot.scoredpoints,{})
-	pilot.altitude = points[pilot.compno] ? points[pilot.compno][0].a : undefined;
     } );
+
+    // Update the vario
+    _map( points, (points,compno) => calculateVario( trackers[compno], state[compno], points )  );
 
     // Store our calculations away, we don't need to wait for this to return
     // This means we won't need to reprocess every track point the next time
@@ -274,3 +275,67 @@ function mergeDB( pilot, tracker )
     return tracker;
 }
 
+
+function calculateVario( tracker, state, points ) {
+
+    // If we have a real score then we are not flying so don't report this...
+    if( tracker.datafromscoring == 'Y' ) {
+	tracker.gainXsecond = undefined;
+	tracker.lossXsecond = undefined;
+	tracker.min = undefined;
+	tracker.max = undefined;
+	tracker.Xperiod = undefined;
+	tracker.altitude = undefined;
+	tracker.agl = undefined;
+	return;
+    }
+
+    let p = 0;
+
+    // How far are we scanning
+    const firstTime = points[p].t;
+    const endVarioTime = firstTime - 60;
+    const endTime = Math.min(endVarioTime, (state.lastVarioTime ? state.lastVarioTime : points[points.length-1].t));
+
+    // Save away our latest altitude
+    tracker.altitude = points[0].a;
+    tracker.agl = points[0].g;
+    
+    while( p < points.length-1 && points[p].t > endTime) {
+	const pt = points[p];
+	
+	tracker.min = Math.min(tracker.min,pt.a);
+	tracker.max = Math.max(tracker.max,pt.a);
+
+	if( pt.t > endVarioTime ) {
+            var diff = pt.a - points[p+1].a;
+            if( diff > 0 ) {
+                tracker.gainXsecond += diff;
+            }
+            else {
+                tracker.lossXsecond += diff;
+            }
+            tracker.Xperiod = firstTime - points[p+1].t;
+        }
+	p++;
+    }
+
+    // So we know
+    state.lastVarioTime = points[p].t;
+
+    // So it doesn't display if we didn't record it
+    var climbing = false;
+    if( tracker.Xperiod ) {
+        tracker.gainXsecond = Math.round(tracker.gainXsecond*10)/10;
+        tracker.lossXsecond = Math.round(tracker.lossXsecond*10)/10;
+	// 9.87 = feet/minute to knots
+	// 60 = m/minute to m/sec
+        tracker.averager = Math.round(((tracker.gainXsecond + tracker.lossXsecond) / tracker.Xperiod )*10)/10;
+//        tracker.averager = Math.round(((tracker.gainXsecond + tracker.lossXsecond) / tracker.Xperiod) * 60 / (map.og_units?9.87:6))/10;
+    }
+    else {
+        tracker.gainXsecond = undefined;
+        tracker.lossXsecond = undefined;
+        tracker.averager = undefined;
+    }
+}
