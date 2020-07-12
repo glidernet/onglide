@@ -483,7 +483,7 @@ DROP TABLE IF EXISTS `trackpoints`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `trackpoints` (
   `compno` char(4) NOT NULL,
-  `class` char(20) DEFAULT NULL,
+  `class` char(15) DEFAULT NULL,
   `datecode` char(3) NOT NULL,
   `lat` float NOT NULL,
   `lng` float NOT NULL,
