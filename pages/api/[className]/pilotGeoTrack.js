@@ -35,7 +35,7 @@ export default async function taskHandler( req, res ) {
     let points = await db.query(escape`
             SELECT lat, lng, t
               FROM trackpoints
-             WHERE datecode=${datecode} AND compno=${compno}
+             WHERE datecode=${datecode} AND compno=${compno} AND class=${className}
              ORDER BY t DESC`);
 
     let trackJSON = {
