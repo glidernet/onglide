@@ -345,25 +345,25 @@ daypoints: BEGIN
 	-- Check for ties and correct
 	update pilotresult pr,
 		   (select daypoints, min(dayrank) dayrank from pilotresult p2, pilots p where p.compno = p2.compno and p.participating = 'Y' and
-		           p2.datecode=_datecode and p2.class=_class group by 1) x
+		           p2.datecode=_datecode and p2.class=_class and p2.class=p.class group by 1) x
 		SET pr.dayrank = x.dayrank where pr.daypoints=x.daypoints and datecode=_datecode and class=_class;
 
 	-- calculate the overall rank, including todays results
 	 update pilotresult p left join
-	      (select compno, sum(daypoints) dpt from pilotresult where datecode < _datecode group by compno) p2
+	      (select compno, sum(daypoints) dpt from pilotresult where datecode < _datecode and dpt.class=_class group by compno) p2
 		     on p.compno = p2.compno
 	    set p.totalpoints = COALESCE(p2.dpt,0)+p.daypoints where class=_class and datecode=_datecode;
 
 	set @total = 0;
 	update pilotresult pr set pr.totalrank = (@total:=@total+1)
 	 where pr.datecode=_datecode and pr.class=_class and
-	       (select participating from pilots p where p.compno = pr.compno) ='Y'
+	       (select participating from pilots p where p.compno = pr.compno and p.class=pr.class) ='Y'
       order by pr.totalpoints desc;
 
 	-- check for ties and correct
 	update pilotresult pr,
 		   (select totalpoints, min(totalrank) totalrank from pilotresult p2, pilots p where p.compno = p2.compno and p.participating = 'Y'
-		      and p2.datecode=_datecode and p2.class=_class group by 1) x
+		      and p2.datecode=_datecode and p2.class=_class and p.class=p2.class group by 1) x
 		SET pr.totalrank = x.totalrank where pr.totalpoints=x.totalpoints and datecode=_datecode and class=_class;
 
 END;
