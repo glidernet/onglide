@@ -156,7 +156,7 @@ BEGIN
 				UPDATE taskleg
 					   set length = 0,
 					   	   bearing = 0,
-						   Hi = 0,
+						   Hi = 0
 					WHERE taskid = _taskid and legno = _legno;
 	
 			END IF;
