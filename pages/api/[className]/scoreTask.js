@@ -48,6 +48,7 @@ let kvs = [];
 export default async function scoreTask( req, res ) {
     const {
 	query: { className },
+	headers: { host },
     } = req;
 
     if( !className ) {
@@ -55,6 +56,8 @@ export default async function scoreTask( req, res ) {
 	res.status(404).json({error: "missing parameter(s)"});
 	return;
     }
+
+    console.log(host);
     
     // We want to keep track of what we have scored before as this algo has always been
     // iterative. We expect them to have some values so initialise them correctly
@@ -83,14 +86,14 @@ export default async function scoreTask( req, res ) {
 	(!rawpilots || ! rawpilots.ts || (rawpilots.ts+600*1000)<now )) {
 	
 	// and if it's stale then get from the api
-	task = await fetcher('http://127.10.0.2:3000/api/'+className+'/task')
+	task = await fetcher('http://'+host+'/api/'+className+'/task')
 	if( ! task || ! task.task || ! task.task.type ) {
 	    console.log( 'no task for class: ' + className );
 	    res.status(404).json({error:'no task for class: ' + className});
 	    return;
 	}
 
-	rawpilots = await fetcher('http://127.10.0.2:3000/api/'+className+'/pilots')
+	rawpilots = await fetcher('http://'+host+'/api/'+className+'/pilots')
 	if( ! rawpilots || ! rawpilots.pilots || ! rawpilots.pilots.length ) {
 	    console.log( 'no pilots for class: ' + className );
 	    res.status(404).json({error:'no pilots for class: ' + className});
