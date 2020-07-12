@@ -263,7 +263,7 @@ function mergeDB( pilot, tracker )
 	// If it has been scored or has a finish time in the database then copy the rest of the data over
 	if( pilot.datafromscoring == 'Y' || pilot.finish == 'Y' ) {
             var copyKeys = [ 'start', 'utcstart', 'finish', 'utcfinish', 'dbstatus', 'statustext', 'utctime', 'datafromscoring',
-                             'hspeed', 'speed', 'hdistance', 'distance', 'forcetp' ];
+                             'hspeed', 'speed', 'hdistancedone', 'distancedone', 'forcetp' ];
 	    
             copyKeys.forEach( function(value) {
 		tracker[value] = pilot[value];
