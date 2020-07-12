@@ -41,7 +41,8 @@ export default async function taskHandler( req, res) {
 	                ', ', turnpoints, ' tps' )
           END lasttp,
 	  prevtotalrank, totalrank,
-	  ROUND(hdistance,1) hdistance
+	  hdistance hdistancedone, distance distancedone,
+          speed, hspeed
           
 			FROM pilots, pilotresult pr, compstatus cs
 			WHERE pilots.compno = pr.compno
