@@ -339,7 +339,7 @@ daypoints: BEGIN
 	set @day = 0;
 	update pilotresult pr set pr.dayrank = (@day:=@day+1)
 	 where pr.datecode=_datecode and pr.class=_class and
-	       (select participating from pilots p where p.compno = pr.compno) ='Y'
+	       (select participating from pilots p where p.compno = pr.compno and p.class=_class) ='Y'
       order by pr.daypoints desc;
 
 	-- Check for ties and correct
