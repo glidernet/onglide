@@ -350,7 +350,7 @@ daypoints: BEGIN
 
 	-- calculate the overall rank, including todays results
 	 update pilotresult p left join
-	      (select compno, sum(daypoints) dpt from pilotresult where datecode < _datecode and dpt.class=_class group by compno) p2
+	      (select compno, sum(daypoints) dpt from pilotresult where datecode < _datecode and class=_class group by compno) p2
 		     on p.compno = p2.compno
 	    set p.totalpoints = COALESCE(p2.dpt,0)+p.daypoints where class=_class and datecode=_datecode;
 
