@@ -21,9 +21,10 @@ use LWP::UserAgent;
 use Net::WebSocket::Server;
 
 use PDL;
-use feature ':5.10';
+use feature ':5.24';
 
 my $W = 1201; # use 3-minute DEMs, so each DEM is 1201 x 1201
+my $dempath = "./dem/";
 
 # 
 my $server = 'aprs.glidernet.org:14580';
@@ -68,7 +69,7 @@ my $wsserver = Net::WebSocket::Server->new(
 	my $now = time();
 	my $nowStr = timestr($now);
 	foreach my $connection ( $serv->connections ) {
-		$connection->send_utf8(sprintf("{'keepalive':1,'t':'%s','at':%d,'listeners':%d}",
+                $connection->send_utf8(sprintf('{"keepalive":1,"t":"%s","at":%d,"listeners":%d}',
 					       $nowStr, $now, $listeners{$connection->{channel}} ));
 	}
 
@@ -121,6 +122,7 @@ my $wsserver = Net::WebSocket::Server->new(
 		# make sure the channel exists
 		my $c = $channels{ $conn->{channel} };
 		if( ! $c ) {
+		    print Dumper(%channels);
 		    print "$competition: unknown channel $channel (".$handshake->req->{resource_name}.") from ".$handshake->req->{fields}->{'x-forwarded-for'}."\n";
 		    $conn->disconnect(404,'unknown competition class');
 		    return;
@@ -149,7 +151,7 @@ my $wsserver = Net::WebSocket::Server->new(
 		# send a keepalive so that it's obvious the stream has started
 		my $now = time();
 		my $nowStr = timestr($now);
- 		$conn->send_utf8(sprintf("{'keepalive':1,'t':'%s','at':%d,'listeners':%d}",
+                $conn->send_utf8(sprintf('{"keepalive":1,"t":"%s","at":%d,"listeners":%d}',
 						   $nowStr, $now, $listeners{$conn->{channel}} ));
 
 		# and some logging
@@ -373,12 +375,12 @@ sub doGliderStuff {
 	    my $c = 0;
 	    foreach my $ws ( values %{$channels{ uc($is->{site}.$tracker->{channel}) }->{connections}||{}} ) {
 		$c++;
-		$ws->send_utf8(sprintf("{'g':'%s','lat':%.4f,'lng':%.4f,'alt':%d,'t':'%s','at':%d,'agl':%d,'s':%4.1f}\n",
+                $ws->send_utf8(sprintf('{"g":"%s","lat":%.4f,"lng":%.4f,"alt":%d,"t":"%s","at":%d,"agl":%d,"s":%4.1f}',
 				       $compno, $lt, $lg, $alt, timestr($time), $time, $agl, $signal));
 	    }
 	    foreach my $ws ( values %{$channels{ uc($is->{site}.'all') }->{connections}||{}} ) {
 		$c++;
-		$ws->send_utf8(sprintf("{'g':'%s','lat':%.4f,'lng':%.4f,'alt':%d,'t':'%s','at':%d,'agl':%d,'s':%4.1f}\n",
+                $ws->send_utf8(sprintf('{"g":"%s","lat":%.4f,"lng":%.4f,"alt":%d,"t":"%s","at":%d,"agl":%d,"s":%4.1f}',
 				       $compno, $lt, $lg, $alt, timestr($time), $time, $agl, $signal));
 	    }
 
@@ -416,7 +418,7 @@ sub doGliderStuff {
 	    
 	    if( ! $islate ) {
 		foreach my $ws ( values %{$channels{ uc($is->{site}.'launches') }->{connections}} ) {
-		    $ws->send_utf8(sprintf("{'g':'%s','flarmid':'%s','lat':%.5f,'lng':%.5f,'alt':%d,'t':'%s','at':%d,'compno':'%s','agl':'%d'}\n",
+                    $ws->send_utf8(sprintf('{"g":"%s","flarmid":"%s","lat":%.5f,"lng":%.5f,"alt":%d,"t":"%s","at":%d,"compno":"%s","agl":"%d"}\n',
 				   $flarmid, $callsign, $lt, $lg, $alt, timestr($time), $time, $compno, $agl) );
 		}
 	    }
@@ -429,12 +431,22 @@ sub doGliderStuff {
 	    # assume it's valid if it is launched from the local airfield
 	    # we want to make sure it is close enough to the ground to be sensible so we don't
 	    # false positive on fly overs
-	    my $trackers = $is->{trackers};
-	    if( $trackers->{$flarmid} && ! $trackers->{$flarmid}->{confirmed} ) {
-		$trackers->{$flarmid}->{confirmed} = 1;
-		print "\n-----> $flarmid associated with ".$trackers->{$flarmid}->{compno};
-		$is->{sth_recordtracker}->execute( $flarmid,  $trackers->{$flarmid}->{compno}, $trackers->{$flarmid}->{class} );
-		$is->{sth_recordtracker2}->execute( $trackers->{$flarmid}->{compno}, $flarmid, $time );
+	    my $ddb = $is->{ddb};
+	    if( $ddb->{$flarmid} && ! $is->{trackers}->{$flarmid} ) {
+
+		my $possiblecompno = $ddb->{$flarmid};
+		my $possibleglider = $is->{compnos}->{$possiblecompno};
+		if( $possibleglider ) {
+		    if(! $possibleglider->{dontlearn} ) {
+			$is->trackers->{$flarmid} = $possibleglider;
+			print "\n-----> $flarmid associated with ".$possiblecompno;
+			$is->{sth_recordtracker}->execute( $flarmid,  $possiblecompno, $possibleglider->{class} );
+			$is->{sth_recordtracker2}->execute( $possiblecompno, $flarmid, $time );
+		    }
+		    else {
+			print "\n! not learning $flarmid as $possiblecompno as duplicate compno in multiple classes";
+		    }
+		}
 	    }
 	}
     }
@@ -460,6 +472,7 @@ sub fetchCompetitions {
     my ($database,$host,$user,$pw,$site);
 
     while( my $l = <FH> ) {
+	print $l;
 	if( $l =~ m/^MYSQL_([A-Z_]+)=(.*)$/ ) {
 	    my ($key,$value) = ($1,$2);
 	    $database = $value if( $key eq 'DATABASE' ) ;
@@ -470,13 +483,18 @@ sub fetchCompetitions {
 	if( $l =~ m/^WEBSITENAME=(.*)$/ ) {
 	    $site = $1;
 	}
+	if( $l =~ m/^DEM_PATH=(.*)$/ ) {
+	    $dempath = $1;
+	}
     }
     close(FH);
 
     if( !$site || !$database || !$host || !$user || !$pw ) {
 	die "missing config, need MYSQL_(DATABASE|HOST|USER|PASSWORD) + WEBSITENAME in ../.env.local";
     }
-    
+
+    print "configured $host:$database, website: $site, dems: $dempath\n";
+
     # this works as a loop but the configuration above does not.  If you want to change this it's possible but
     # as the next.js app doesn't support it there may not be much point
     {
@@ -495,7 +513,7 @@ sub fetchCompetitions {
 
 	# if we don't have a connection then we should reconnect
 	if( ! $db ) {
-	    $db = DBI->connect( "dbi:mysql:database=$database;host=$host", $user, $pw, { PrintError => 0 } ) || next;
+	    $db = DBI->connect( "dbi:mysql:database=$database;host=$host", $user, $pw, { PrintError => 1 } ) || next;
 	}
 
 	# check if the competition has ended using local times	
@@ -549,7 +567,7 @@ sub fetchCompetitions {
 	}
 
 	# everything else we do on this DB handle we do in GMT
-	$db->do( 'SET time_zone = "GMT"' );
+	$db->do( 'SET time_zone = "+00:00"' );
 
 	if( ! $is ) {
 	    
@@ -649,12 +667,18 @@ sub updateTrackers {
     $sth_sids->execute();
     $is->{trackers} = $sth_sids->fetchall_hashref('trackerid');
 
-    $sth_sids = $is->{db}->prepare( 'select p.compno, trackerid, UPPER(REPLACE(concat(t.class,c.datecode),"[^A-Za-z0-9]","")) channel, '.
+    $sth_sids = $is->{db}->prepare( 'select p.compno, trackerid, UPPER(REPLACE(concat(t.class,c.datecode),"[^A-Za-z0-9]","")) channel, 0 dontlearn, '.
 				    ' p.class, c.datecode '.
-				    ' from pilots p left outer join tracker t on p.class=t.class and p.compno=t.compno, compstatus c '.
+				    ' from pilots p left outer join tracker t on p.class=t.class and p.compno=t.compno left outer join compstatus c on c.class=p.class '.
 				    'where p.class = c.class' );
     $sth_sids->execute();
     $is->{compnos} = $sth_sids->fetchall_hashref('compno');
+
+    # ignore any duplicates
+    my $dups = $is->{db}->selectall_arrayref( 'select compno,count(*) from pilots group by compno' );
+    foreach my $dup ( @{$dups} ) {
+	$is->{compnos}->{$dup}->{dontlearn} = 1;
+    }
 
     # look for any we may not know
     readDDB($is);
@@ -721,18 +745,22 @@ sub readDEM
 {
     my ($demfileE, $demfileN) = @_;
 
+    # if it is configured not to have dem
+    if( $dempath =~ /none/i ) {
+	return 0;
+    }
     
     my $path;
-    if   ($demfileN >= 0 && $demfileE >= 0){ $path = sprintf("./dem/N%.2dE%.3d.hgt", $demfileN,  $demfileE); }
-    elsif($demfileN >= 0 && $demfileE <  0){ $path = sprintf("./dem/N%.2dW%.3d.hgt", $demfileN, -$demfileE); }
-    elsif($demfileN  < 0 && $demfileE >= 0){ $path = sprintf("./dem/S%.2dE%.3d.hgt", -$demfileN, $demfileE); }
-    else                                   { $path = sprintf("./dem/S%.2dW%.3d.hgt", -$demfileN, -$demfileE); }
+    if   ($demfileN >= 0 && $demfileE >= 0){ $path = sprintf("%s/N%.2dE%.3d.hgt", $dempath, $demfileN,  $demfileE); }
+    elsif($demfileN >= 0 && $demfileE <  0){ $path = sprintf("%s/N%.2dW%.3d.hgt", $dempath, $demfileN, -$demfileE); }
+    elsif($demfileN  < 0 && $demfileE >= 0){ $path = sprintf("%s/S%.2dE%.3d.hgt", $dempath, -$demfileN, $demfileE); }
+    else                                   { $path = sprintf("%s/S%.2dW%.3d.hgt", $dempath, -$demfileN, -$demfileE); }
 
     say STDERR "Reading DEM '$path'";
     if( ! -e $path )
     {
 	warn "DEM '$path' not found. No height AGL will be available";
-	warm " ** you can download dem from https://dds.cr.usgs.gov/srtm/version2_1/SRTM3/ **";
+	warn " ** you can download dem from https://dds.cr.usgs.gov/srtm/version2_1/SRTM3/ **";
 	return 0;
     }
 
@@ -775,12 +803,8 @@ sub readDDB  {
 	    my $compno = $3;
 	    
 	    # if it is one we want then save it away
-	    if( exists $is->{compnos}->{$compno} && ! exists $is->{trackers}->{$id} ) {
-		#		print ">> $id, $greg, $compno\n";
-		my %temp = %{$is->{compnos}->{$compno}};
-		$is->{compnos}->{$compno}->{trackerid} = $id;
-		$is->{trackers}->{$id} = \%temp;
-		$is->{trackers}->{$id}->{confirmed} = 0;
+	    if( exists $is->{compnos}->{$compno} ) {
+		$is->{ddb}->{$id} = $3;
 	    }
 	}
     }
