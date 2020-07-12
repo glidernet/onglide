@@ -13,6 +13,10 @@ export default async function competitionHandler( req, res) {
                 lt, lg
            FROM competition`);
 
+    if( ! competition[0] ) {
+	console.log( competition.error );
+    }
+
     const classes = await db.query(escape`
          SELECT class, classname, description 
            FROM classes`);
