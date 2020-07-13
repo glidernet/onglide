@@ -331,6 +331,7 @@ td.small img {
     padding: 0px;
     background-position: center; 
     background-repeat: no-repeat;
+    background-size: contain;
 }
 
 .small-pic .ih .icountry {
