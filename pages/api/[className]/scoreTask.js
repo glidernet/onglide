@@ -57,7 +57,7 @@ export default async function scoreTask( req, res ) {
 	return;
     }
 
-    console.log(host);
+    console.log(req.host);
     
     // We want to keep track of what we have scored before as this algo has always been
     // iterative. We expect them to have some values so initialise them correctly
@@ -71,7 +71,7 @@ export default async function scoreTask( req, res ) {
     //       *tasks* is the task data
     let kv = kvs[className];
     if( ! kvs[className] ) {
-	console.log("new kv store");
+	console.log( className + " new kv store created");
 	kvs[className] = kv = new Keyv({namespace: 'scoring_'+className});
 	
     }
@@ -136,7 +136,7 @@ export default async function scoreTask( req, res ) {
     //    console.log( className+' Cache Check: '+cacheTScheck+' vs '+rawpoints[0].t+', Cache Task Id:'+cacheTaskId+', task.id:'+task.task.taskid);
     if( (cacheTScheck && cacheTScheck > rawpoints[0].t) || (cacheTaskId && cacheTaskId != task.task.taskid) ) {
 	kv.clear();
-	console.log("stale cache, fail request");
+	console.log(className + " stale cache, fail request");
 	res.status(503)
 	    .json({error:'stale cache'});
 	return;
@@ -221,7 +221,7 @@ export default async function scoreTask( req, res ) {
     kv.set('state',state);
 
     const profiled = process.hrtime(startProfiling);
-    console.info('Scoring time (elapsed): %d seconds', Math.round(1000*(profiled[0] + (profiled[1] / 1000000000)))/1000 );
+    console.info(className+' * scored, time (elapsed): %d seconds', Math.round(1000*(profiled[0] + (profiled[1] / 1000000000)))/1000 );
 
     // How long should it be cached
     res.setHeader('Cache-Control','max-age=30');

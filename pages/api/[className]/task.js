@@ -37,7 +37,7 @@ export default async function taskHandler( req, res) {
     `);
 
     if( ! taskdetails || ! taskdetails.length ) {
-	console.log( "no active task" );
+	console.log( "/api/task.js: no active task" );
 	res.status(404).json({error: "no active task"});
 	return;
     }

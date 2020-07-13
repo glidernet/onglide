@@ -19,6 +19,7 @@
     "lodash": "^4.17.19",
     "lodash.clone": "^4.5.0",
     "lodash.clonedeep": "^4.5.0",
+    "lodash.find": "^4.6.0",
     "lodash.foreach": "^4.5.0",
     "lodash.groupby": "^4.6.0",
     "lodash.map": "^4.6.0",
