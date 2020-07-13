@@ -45,7 +45,7 @@ export default async function taskHandler( req, res) {
           speed, hspeed
           
 			FROM pilots, pilotresult pr, compstatus cs
-			WHERE pilots.compno = pr.compno
+			WHERE pilots.compno = pr.compno and pr.class = pilots.class
                           and cs.datecode = pr.datecode
                           and cs.class = pilots.class
 			  and pilots.class = ${className}
