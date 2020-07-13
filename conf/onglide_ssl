@@ -38,13 +38,15 @@ SSLSessionCacheTimeout  300
 
 # Where do we want data to be cached? you will probably need to change this
    CacheRoot   /tmp/onglide/cache/
-   CacheEnable mem /api
-   CacheEnable mem /
+   CacheEnable disk /api
+   CacheEnable disk /
    CacheIgnoreHeaders Set-Cookie
    CacheLock on
    CacheLockPath /tmp/onglide/mod_cache-lock
    CacheLockMaxAge 5
    CacheMaxFileSize 3638400
+   CacheDirLevels 2
+   CacheDirLength 1
 
  
 # For redirecting websockets to the perl websocket host
@@ -67,8 +69,8 @@ SSLSessionCacheTimeout  300
 
 # Proxy to Node/Next.js
    ProxyRequests On
-   ProxyPass / http://localhost:3000
-   ProxyPassReverse / http://localhost:3000
+   ProxyPass / http://localhost:3000/
+   ProxyPassReverse / http://localhost:3000/
 
 </VirtualHost>
 
