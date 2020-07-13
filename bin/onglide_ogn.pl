@@ -438,7 +438,7 @@ sub doGliderStuff {
 		my $possibleglider = $is->{compnos}->{$possiblecompno};
 		if( $possibleglider ) {
 		    if(! $possibleglider->{dontlearn} ) {
-			$is->trackers->{$flarmid} = $possibleglider;
+			$is->{trackers}->{$flarmid} = $possibleglider;
 			print "\n-----> $flarmid associated with ".$possiblecompno;
 			$is->{sth_recordtracker}->execute( $flarmid,  $possiblecompno, $possibleglider->{class} );
 			$is->{sth_recordtracker2}->execute( $possiblecompno, $flarmid, $time );
@@ -472,7 +472,6 @@ sub fetchCompetitions {
     my ($database,$host,$user,$pw,$site);
 
     while( my $l = <FH> ) {
-	print $l;
 	if( $l =~ m/^MYSQL_([A-Z_]+)=(.*)$/ ) {
 	    my ($key,$value) = ($1,$2);
 	    $database = $value if( $key eq 'DATABASE' ) ;
