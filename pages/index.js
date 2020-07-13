@@ -73,27 +73,37 @@ function Menu(props) {
 
 function CombinePage() {
 
+    // First step is to extract the class from the query, we use
+    // query because that stops page reload when switching between the
+    // classes. If no class is set then assume the first one
     const router = useRouter()
     console.log( router.query );
     let { className } = router.query;
-    const { comp, isLoading, error } = useContest();
-    const [ selectedPilot, setSelectedPilot ] = useState();
-    if (isLoading) return <Spinner />;
-    if (error) return <Error />;
-
     if( ! className ) {
 	className = comp.classes[0].class;
     }
 
+    // Next up load the contest and the pilots
+    const { comp, isLoading, error } = useContest();
+    const { pilots, isLoading: isPLoading, error: isPerror } = usePilots(className);
+    const [ selectedCompno, setSelectedCompno ] = useState();
+
+    // And display in progress until they are loaded
+    if (isLoading||isPLoading) return <Spinner />;
+    if (error||isPerror) return <Error />;
+
+    // Make sure we have the class object
     const selectedClass = _find( comp.classes, function(c) {
 	return c.class == className
     } );
-    console.log( selectedClass );
+
+    // And the pilot object
+    const selectedPilot = pilots[selectedCompno];
 
     return (
 	<>
             <IncludeJavascript/>
-            <Menu comp={comp} vc={className} setSelectedPilot={setSelectedPilot}/>
+            <Menu comp={comp} vc={className} setSelectedPilot={setSelectedCompno}/>
             <Container fluid>
                 <Row>
                     <Col sm={7}>
@@ -101,7 +111,7 @@ function CombinePage() {
 		    </Col>
                     <Col>
                         <TaskDetails vc={className}/>
-                        <PilotList vc={className} selectedPilot={selectedPilot} setSelectedPilot={(x)=>setSelectedPilot(x)}/>
+                        <PilotList vc={className} pilots={pilots} selectedPilot={selectedPilot} setSelectedCompno={(x)=>setSelectedCompno(x)}/>
                     </Col>
                 </Row>
             </Container>
