@@ -92,7 +92,7 @@ export default async function geoTracks( req, res) {
 					       [{ 'type': 'Feature',
 						  properties: { 'i': 'circle',
 								'c': key,
-								'v':(latest-points[0].t>historyLength?'grey':'green'),
+								'v':(latest-points[0].t>historyLength?'grey':'black'),
 								'x': points[0].a + 'm (' + points[0].g + 'm agl)',
 								't': points[0].t,
 							      },
