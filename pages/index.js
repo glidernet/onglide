@@ -39,9 +39,7 @@ function IncludeJavascript() {
 
 // Requires: classes, link, contestname, contestdates
 
-function Menu(props) {
-
-    const comp = props.comp;
+function Menu( {comp} ) {
 
     const classes = comp.classes.map( (c) => <Nav.Item key={'navitem'+c.class}>
 						 <Nav.Link href='#'
@@ -71,34 +69,38 @@ function Menu(props) {
     );
 }
 
-function CombinePage() {
+//
+// Main page rendering :)
+function CombinePage( props ) {
 
     // First step is to extract the class from the query, we use
     // query because that stops page reload when switching between the
     // classes. If no class is set then assume the first one
     const router = useRouter()
-    console.log( router.query );
     let { className } = router.query;
-    if( ! className ) {
-	className = comp.classes[0].class;
+    if (!className) {
+	className = props.defaultClass;
     }
 
-    // Next up load the contest and the pilots
-    const { comp, isLoading, error } = useContest();
-    const { pilots, isLoading: isPLoading, error: isPerror } = usePilots(className);
+    // Next up load the contest and the pilots, we can use defaults for pilots
+    // if the className matches
+    const { comp, isLoading, error } = useContest(props.contest);
+    const { pilots, isLoading: isPLoading, error: isPerror, mutate } =
+	  usePilots(className, _find(props.contest.classes,{'class': className}).pilots );
+
+    // And keep track of who is selected
     const [ selectedCompno, setSelectedCompno ] = useState();
 
     // And display in progress until they are loaded
-    if (isLoading||isPLoading) return <Spinner />;
-    if (error||isPerror) return <Error />;
+    if (isLoading) return <Spinner />;
+    if (error) return <Error />;
 
     // Make sure we have the class object
-    const selectedClass = _find( comp.classes, function(c) {
-	return c.class == className
-    } );
+    const selectedClass = _find( comp.classes,{'class': className} );
+
 
     // And the pilot object
-    const selectedPilot = pilots[selectedCompno];
+    const selectedPilot = pilots ? pilots[selectedCompno] : undefined;
 
     return (
 	<>
@@ -107,16 +109,38 @@ function CombinePage() {
             <Container fluid>
                 <Row>
                     <Col sm={7}>
-			<TaskMap vc={className} selectedPilot={selectedPilot} datecode={selectedClass?selectedClass.datecode:'07C'}/>
+			<TaskMap vc={className} selectedPilot={selectedPilot} datecode={selectedClass?selectedClass.datecode:'07C'} mutatePilots={mutate} pilots={pilots}/>
 		    </Col>
                     <Col>
                         <TaskDetails vc={className}/>
-                        <PilotList vc={className} pilots={pilots} selectedPilot={selectedPilot} setSelectedCompno={(x)=>setSelectedCompno(x)}/>
+			{pilots && 
+                         <PilotList vc={className} pilots={pilots} selectedPilot={selectedPilot} setSelectedCompno={(x)=>setSelectedCompno(x)}/>
+			}
                     </Col>
                 </Row>
             </Container>
 	</>
     );
+}
+
+//
+// Determine the default class
+export async function getStaticProps(context) {
+
+    // We will preload these values on the server, this saves us from waiting
+    // form them to calculate and load at the client end and presents the first
+    // page quicker. Note, we may not need the pilots data if the URL has 
+    let contest = (await fetch('http://'+process.env.API_HOSTNAME+'/api/contest').then(res => res.json()));
+
+    // Umm map+async = head hurts whereas this works and took me 1 minute to write
+    for( let i = 0; i < contest.classes.length; i++ ) {
+	let c = contest.classes[i];
+	c.pilots = await ((await fetch('http://'+process.env.API_HOSTNAME+'/api/'+c.class+'/pilots')).json());
+    }
+    
+    return {
+	props: { defaultClass: contest.classes[0].class, contest: contest  }, // will be passed to the page component as props
+    }
 }
 
 export default CombinePage;
