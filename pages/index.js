@@ -39,15 +39,16 @@ function IncludeJavascript() {
 
 // Requires: classes, link, contestname, contestdates
 
-function Menu( {comp} ) {
+function Menu( props ) {
 
+    const comp = props.comp;
     const classes = comp.classes.map( (c) => <Nav.Item key={'navitem'+c.class}>
 						 <Nav.Link href='#'
 							   key={'navlink'+c.class}
 							   eventKey={c.class}
 							   onClick={() => { Router.push('/?className='+c.class, undefined, {shallow:true});
 									    props.setSelectedPilot(null);}}>
-						     {c.classname}
+						     {c.classname}{c.status == 'L'?<><Nbsp/><Icon type="plane"/></>:null}
 						 </Nav.Link>
 					     </Nav.Item>);
 
