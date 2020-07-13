@@ -48,7 +48,6 @@ let kvs = [];
 export default async function scoreTask( req, res ) {
     const {
 	query: { className },
-	headers: { host },
     } = req;
 
     if( !className ) {
@@ -57,8 +56,6 @@ export default async function scoreTask( req, res ) {
 	return;
     }
 
-    console.log(req.host);
-    
     // We want to keep track of what we have scored before as this algo has always been
     // iterative. We expect them to have some values so initialise them correctly
     // The cache is per class as each class has different scoring and we need to be
@@ -86,14 +83,14 @@ export default async function scoreTask( req, res ) {
 	(!rawpilots || ! rawpilots.ts || (rawpilots.ts+600*1000)<now )) {
 	
 	// and if it's stale then get from the api
-	task = await fetcher('http://'+host+'/api/'+className+'/task')
+	task = await fetcher('http://'+process.env.API_HOSTNAME+'/api/'+className+'/task')
 	if( ! task || ! task.task || ! task.task.type ) {
 	    console.log( 'no task for class: ' + className );
 	    res.status(404).json({error:'no task for class: ' + className});
 	    return;
 	}
 
-	rawpilots = await fetcher('http://'+host+'/api/'+className+'/pilots')
+	rawpilots = await fetcher('http://'+process.env.API_HOSTNAME+'/api/'+className+'/pilots')
 	if( ! rawpilots || ! rawpilots.pilots || ! rawpilots.pilots.length ) {
 	    console.log( 'no pilots for class: ' + className );
 	    res.status(404).json({error:'no pilots for class: ' + className});
