@@ -309,7 +309,6 @@ function calculateVario( tracker, state, points ) {
 
 	if( pt.t > endVarioTime ) {
             var diff = pt.a - points[p+1].a;
-	    console.log( tracker.compno + " v:"+diff );
             if( diff > 0 ) {
                 tracker.gainXsecond += diff;
             }
