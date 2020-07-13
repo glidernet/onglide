@@ -18,8 +18,8 @@ export default async function competitionHandler( req, res) {
     }
 
     const classes = await db.query(escape`
-         SELECT class, classname, description 
-           FROM classes`);
+         SELECT c.class, c.classname, c.description, cs.datecode
+           FROM classes c, compstatus cs where c.class=cs.class`);
 
     // How long should it be cached - 60 seconds is goo
     res.setHeader('Cache-Control','max-age=6000');

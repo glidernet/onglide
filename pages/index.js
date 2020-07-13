@@ -25,10 +25,7 @@ import Router from 'next/router'
 
 const pilotsorting = require('../lib/pilot-sorting.js');
 
-
-const baseUrl = 'https://sample.onglide.com';
-
-
+import _find from 'lodash.find';
 
 function IncludeJavascript() {
     return (
@@ -88,6 +85,11 @@ function CombinePage() {
 	className = comp.classes[0].class;
     }
 
+    const selectedClass = _find( comp.classes, function(c) {
+	return c.class == className
+    } );
+    console.log( selectedClass );
+
     return (
 	<>
             <IncludeJavascript/>
@@ -95,7 +97,7 @@ function CombinePage() {
             <Container fluid>
                 <Row>
                     <Col sm={7}>
-			<TaskMap vc={className} selectedPilot={selectedPilot} datecode={'07C'}/>
+			<TaskMap vc={className} selectedPilot={selectedPilot} datecode={selectedClass?selectedClass.datecode:'07C'}/>
 		    </Col>
                     <Col>
                         <TaskDetails vc={className}/>
