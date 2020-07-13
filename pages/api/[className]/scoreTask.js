@@ -300,6 +300,9 @@ function calculateVario( tracker, state, points ) {
     // Save away our latest altitude
     tracker.altitude = points[0].a;
     tracker.agl = points[0].g;
+    tracker.gainXsecond = 0;
+    tracker.lossXsecond = 0;
+    tracker.Xperiod = 0;
     
     while( p < points.length-1 && points[p].t > endTime) {
 	const pt = points[p];
@@ -309,6 +312,7 @@ function calculateVario( tracker, state, points ) {
 
 	if( pt.t > endVarioTime ) {
             var diff = pt.a - points[p+1].a;
+	    console.log( tracker.compno + " v:"+diff );
             if( diff > 0 ) {
                 tracker.gainXsecond += diff;
             }
@@ -325,7 +329,7 @@ function calculateVario( tracker, state, points ) {
 
     // So it doesn't display if we didn't record it
     var climbing = false;
-    if( tracker.Xperiod ) {
+    if( tracker.Xperiod && tracker.Xperiod < 90 ) {
         tracker.gainXsecond = Math.round(tracker.gainXsecond*10)/10;
         tracker.lossXsecond = Math.round(tracker.lossXsecond*10)/10;
 	// 9.87 = feet/minute to knots
@@ -337,5 +341,6 @@ function calculateVario( tracker, state, points ) {
         tracker.gainXsecond = undefined;
         tracker.lossXsecond = undefined;
         tracker.averager = undefined;
+	tracker.Xperiod = undefined;
     }
 }
