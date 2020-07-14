@@ -209,7 +209,7 @@ export default async function scoreTask( req, res ) {
     } );
 
     // Update the vario
-    _map( points, (points,compno) => calculateVario( trackers[compno], state[compno], points )  );
+//    _map( points, (points,compno) => calculateVario( trackers[compno], state[compno], points )  );
 
     // Store our calculations away, we don't need to wait for this to return
     // This means we won't need to reprocess every track point the next time
