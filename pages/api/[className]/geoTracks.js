@@ -90,7 +90,7 @@ export default async function geoTracks( req, res) {
 	if( points && points.length > 0 ) {
 	    locationJSON.features = [].concat( locationJSON.features,
 					       [{ 'type': 'Feature',
-						  properties: { 'i': 'circle',
+						  properties: { 'i': 'dot',
 								'c': key,
 								'v':(latest-points[0].t>historyLength?'grey':'black'),
 								'x': points[0].a + 'm (' + points[0].g + 'm agl)',
