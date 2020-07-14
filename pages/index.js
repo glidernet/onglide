@@ -24,6 +24,7 @@ import { PilotList } from '../lib/pilotlist.js';
 import Router from 'next/router'
 
 const pilotsorting = require('../lib/pilot-sorting.js');
+const db = require('../lib/db')
 
 import _find from 'lodash.find';
 
@@ -80,20 +81,24 @@ function CombinePage( props ) {
     const router = useRouter()
     let { className } = router.query;
     if (!className) {
+	console.log( "no class!" );
+	console.log(router.query);
 	className = props.defaultClass;
     }
 
     // Next up load the contest and the pilots, we can use defaults for pilots
     // if the className matches
-    const { comp, isLoading, error } = useContest(props.contest);
+    const { comp, isLoading, error } = useContest();
     const { pilots, isLoading: isPLoading, error: isPerror, mutate } =
-	  usePilots(className, _find(props.contest.classes,{'class': className}).pilots );
+	  usePilots(className);
 
     // And keep track of who is selected
     const [ selectedCompno, setSelectedCompno ] = useState();
 
     // And display in progress until they are loaded
-    if (isLoading) return <Spinner />;
+    if (isLoading) return (<div className="loading">
+				   <div className="loadinginner"/>
+			   </div>) ;
     if (error) return <Error />;
 
     // Make sure we have the class object
@@ -114,6 +119,8 @@ function CombinePage( props ) {
 		    </Col>
                     <Col>
                         <TaskDetails vc={className}/>
+			{isPLoading &&<><Icon type="plane" spin={true}/> Loading pilots...</>
+			}
 			{pilots && 
                          <PilotList vc={className} pilots={pilots} selectedPilot={selectedPilot} setSelectedCompno={(x)=>setSelectedCompno(x)}/>
 			}
@@ -128,19 +135,10 @@ function CombinePage( props ) {
 // Determine the default class
 export async function getStaticProps(context) {
 
-    // We will preload these values on the server, this saves us from waiting
-    // form them to calculate and load at the client end and presents the first
-    // page quicker. Note, we may not need the pilots data if the URL has 
-    let contest = (await fetch('http://'+process.env.API_HOSTNAME+'/api/contest').then(res => res.json()));
-
-    // Umm map+async = head hurts whereas this works and took me 1 minute to write
-    for( let i = 0; i < contest.classes.length; i++ ) {
-	let c = contest.classes[i];
-	c.pilots = await ((await fetch('http://'+process.env.API_HOSTNAME+'/api/'+c.class+'/pilots')).json());
-    }
-    
+    const classes = await db.query('SELECT class FROM classes ORDER BY class');
+   
     return {
-	props: { defaultClass: contest.classes[0].class, contest: contest  }, // will be passed to the page component as props
+	props: { defaultClass: classes[0].class  }, // will be passed to the page component as props
     }
 }
 
