@@ -221,7 +221,7 @@ export default async function scoreTask( req, res ) {
     console.info(className+' * scored, time (elapsed): %d seconds', Math.round(1000*(profiled[0] + (profiled[1] / 1000000000)))/1000 );
 
     // How long should it be cached
-    res.setHeader('Cache-Control','max-age=30');
+    res.setHeader('Cache-Control','max-age=60');
 
     // Return the results, this returns basically the same as the pilot
     // API call except it will be enriched with results if we have any
