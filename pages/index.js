@@ -96,11 +96,21 @@ function CombinePage( props ) {
     const [ selectedCompno, setSelectedCompno ] = useState();
 
     // And display in progress until they are loaded
-    if (isLoading) return (<div className="loading">
-				   <div className="loadinginner"/>
-			   </div>) ;
-    if (error) return <Error />;
+    if (isLoading)
+	return (<div className="loading">
+		    <div className="loadinginner"/>
+		</div>) ;
+    if (error||!comp.competition) 
+	return (<div>
+		    <h5 style={{position:'fixed', zIndex:'10', marginLeft:'10px' }}>
+			Unable to load competition, please see <a href="https://github.com/glidernet/onglide/blob/main/readme.md">readme.md</a> for setup instructions
+		    </h5>
+		    <div className="loading">
+			<div className="loadinginner"/>
+		    </div>
+		    </div>) ;
 
+    
     // Make sure we have the class object
     const selectedClass = _find( comp.classes,{'class': className} );
 
@@ -138,7 +148,7 @@ export async function getStaticProps(context) {
     const classes = await db.query('SELECT class FROM classes ORDER BY class');
    
     return {
-	props: { defaultClass: classes[0].class  }, // will be passed to the page component as props
+	props: { defaultClass: classes && classes.length > 0 ? classes[0].class : '' }, // will be passed to the page component as props
     }
 }
 
