@@ -1,8 +1,8 @@
 /*
  * The first of our scoring functions, this will process the points array for each pilot and produce a score
- * and make it available 
+ * and make it available
  *
-*/
+ */
 const db = require('../../../lib/db')
 const escape = require('sql-template-strings')
 import { useRouter } from 'next/router'
@@ -47,13 +47,13 @@ let kvs = [];
 // to decide how to delegate to the various different kinds of tasks
 export default async function scoreTask( req, res ) {
     const {
-	query: { className },
+        query: { className },
     } = req;
 
     if( !className ) {
-	console.log( "no class" );
-	res.status(404).json({error: "missing parameter(s)"});
-	return;
+        console.log( "no class" );
+        res.status(404).json({error: "missing parameter(s)"});
+        return;
     }
 
     // We want to keep track of what we have scored before as this algo has always been
@@ -68,42 +68,42 @@ export default async function scoreTask( req, res ) {
     //       *tasks* is the task data
     let kv = kvs[className];
     if( ! kvs[className] ) {
-	console.log( className + " new kv store created");
-	kvs[className] = kv = new Keyv({namespace: 'scoring_'+className});
-	
+        console.log( className + " new kv store created");
+        kvs[className] = kv = new Keyv({namespace: 'scoring_'+className});
+
     }
     const now = Date.now();
     const startProfiling = process.hrtime();
-    
+
     // Fetch the tasks, legs, competition rules etc.  Needed for scoring
     // try cache
     let task = await kv.get('task');
     let rawpilots = await kv.get('pilots');
     if( (!task || !task.ts || (task.ts+600*1000) < now ) ||
-	(!rawpilots || ! rawpilots.ts || (rawpilots.ts+600*1000)<now )) {
-	
-	// and if it's stale then get from the api
-	task = await fetcher('http://'+process.env.API_HOSTNAME+'/api/'+className+'/task')
-	if( ! task || ! task.task || ! task.task.type ) {
-	    console.log( 'no task for class: ' + className );
-	    res.status(404).json({error:'no task for class: ' + className});
-	    return;
-	}
+        (!rawpilots || ! rawpilots.ts || (rawpilots.ts+600*1000)<now )) {
 
-	rawpilots = await fetcher('http://'+process.env.API_HOSTNAME+'/api/'+className+'/pilots')
-	if( ! rawpilots || ! rawpilots.pilots || ! rawpilots.pilots.length ) {
-	    console.log( 'no pilots for class: ' + className );
-	    res.status(404).json({error:'no pilots for class: ' + className});
-	    return;
-	}
+        // and if it's stale then get from the api
+        task = await fetcher('http://'+process.env.API_HOSTNAME+'/api/'+className+'/task')
+        if( ! task || ! task.task || ! task.task.type ) {
+            console.log( 'no task for class: ' + className );
+            res.status(404).json({error:'no task for class: ' + className});
+            return;
+        }
 
-	// Store what we have received so we don't need to query till it expires
-	// which is handled below
-	task.ts = rawpilots.ts = now;
-	kv.set('pilots',rawpilots);
-	kv.set('task',task);
+        rawpilots = await fetcher('http://'+process.env.API_HOSTNAME+'/api/'+className+'/pilots')
+        if( ! rawpilots || ! rawpilots.pilots || ! rawpilots.pilots.length ) {
+            console.log( 'no pilots for class: ' + className );
+            res.status(404).json({error:'no pilots for class: ' + className});
+            return;
+        }
+
+        // Store what we have received so we don't need to query till it expires
+        // which is handled below
+        task.ts = rawpilots.ts = now;
+        kv.set('pilots',rawpilots);
+        kv.set('task',task);
     }
-        
+
     // Decorate the tasks so we have sectors in geoJSON format, we need this
     // for point in polygon etc, this isn't cached as we can't serialise functions
     // geoJSON probably is but tidier to just redo it here than confirm and not very expensive
@@ -118,12 +118,12 @@ export default async function scoreTask( req, res ) {
              WHERE datecode=${task.contestday.datecode} AND class=${className}
             ORDER BY t DESC`);
 
-/*    if( ! rawpoints || rawpoints.length == 0 ) {
-	console.log( "no tracking yet" );
-	res.status(200)
-	    .json({pilots:{}});
-	return;
-    } */
+    /*    if( ! rawpoints || rawpoints.length == 0 ) {
+          console.log( "no tracking yet" );
+          res.status(200)
+          .json({pilots:{}});
+          return;
+          } */
 
     // We need to make sure our cache is valid - this is both to confirm it hasn't
     // gone back in time more than our check interval (for running sample site)
@@ -132,49 +132,49 @@ export default async function scoreTask( req, res ) {
     const cacheTaskId = await kv.get('cacheTaskId');
     //    console.log( className+' Cache Check: '+cacheTScheck+' vs '+rawpoints[0].t+', Cache Task Id:'+cacheTaskId+', task.id:'+task.task.taskid);
     if( (cacheTScheck && cacheTScheck > rawpoints[0].t) || (cacheTaskId && cacheTaskId != task.task.taskid) ) {
-	kv.clear();
-	console.log(className + " stale cache, fail request");
-	res.status(503)
-	    .json({error:'stale cache'});
-	return;
+        kv.clear();
+        console.log(className + " stale cache, fail request");
+        res.status(503)
+            .json({error:'stale cache'});
+        return;
     }
     kv.set('cacheTScheck',(rawpoints[0]&&rawpoints[0].t)||0);
     kv.set('cacheTaskId',task.task.taskid);
-    
+
     // Group them by comp number, this is quicker than multiple sub queries from the DB
     let points = _groupby( rawpoints, 'compno' );
     const pilots = _groupby( rawpilots.pilots, 'compno' );
 
     // Now we can get our tracker history and internal state for scoring, the scoring routines
-    // should be iterative so don't need to reprocess all points. 
+    // should be iterative so don't need to reprocess all points.
     let trackers = await kv.get('trackers');
     if( ! trackers ) {
-	trackers = {};
-	_foreach( pilots, (undefined,compno) => { trackers[compno] = {}; trackers[compno].min = 9999999999; trackers[compno].max = 0 } );
+        trackers = {};
+        _foreach( pilots, (undefined,compno) => { trackers[compno] = {}; trackers[compno].min = 9999999999; trackers[compno].max = 0 } );
     }
     let state = await kv.get('state');
     if( ! state ) {
-	state = {};
-	_foreach( pilots, (undefined,compno) => { state[compno] = {}} );
+        state = {};
+        _foreach( pilots, (undefined,compno) => { state[compno] = {}} );
     }
 
     // Generate LatLong and geoJSON objects for each point for each pilot
     // Also record min and max alititude (metres)
     _foreach( points, (ppoints,compno) => {
-	_foreach( ppoints, (p) => {
-	    p.ll = new LatLong( p.lat, p.lng );
-	    p.geoJSON = point([p.lng,p.lat]);
-	    trackers[compno].min = Math.min(trackers[compno].min,p.a);
-	    trackers[compno].max = Math.max(trackers[compno].max,p.a);
-	})
+        _foreach( ppoints, (p) => {
+            p.ll = new LatLong( p.lat, p.lng );
+            p.geoJSON = point([p.lng,p.lat]);
+            trackers[compno].min = Math.min(trackers[compno].min,p.a);
+            trackers[compno].max = Math.max(trackers[compno].max,p.a);
+        })
     });
 
     // Merge what we have on the pilot result from the database into the
     // tracker object.  This makes sure we know what scoring has reported
     // so when the pilot is scored we can display the actual scores on the screen
     _foreach( pilots, (pilot,compno) => {
-	trackers[compno] = mergeDB(pilot[0],trackers[compno]);
-	trackers[compno].taskduration = task.task.durationsecs;
+        trackers[compno] = mergeDB(pilot[0],trackers[compno]);
+        trackers[compno].taskduration = task.task.durationsecs;
     });
 
     // Next step for all types of task is to confirm we have a valid start
@@ -186,30 +186,30 @@ export default async function scoreTask( req, res ) {
     // Actually score the task
     switch( task.task.type ) {
     case 'A': // Assigned Area Task
-	_map( points, (points,compno) => scoreAssignedAreaTask( task, trackers[compno], state[compno], points )  );
-	//scoreAssignedAreaTask(task.legs, trackers['WO'], points['WO']);
-	break;
+        _map( points, (points,compno) => scoreAssignedAreaTask( task, trackers[compno], state[compno], points )  );
+        //scoreAssignedAreaTask(task.legs, trackers['WO'], points['WO']);
+        break;
     case 'S': // speed task
-	_map( points, (points,compno) => scoreSpeedTask( task, trackers[compno], state[compno], points ) );
-	break;
+        _map( points, (points,compno) => scoreSpeedTask( task, trackers[compno], state[compno], points ) );
+        break;
     case 'D': // distance handicapped task (needs to know the maximum handicap to score it properly)
-	_map( points, (points,compno) => scoreDistanceHandicapTask( task, trackers[compno], state[compno], points, _maxby(trackers,'handicap') ));
-	break;
+        _map( points, (points,compno) => scoreDistanceHandicapTask( task, trackers[compno], state[compno], points, _maxby(trackers,'handicap') ));
+        break;
     default:
-	const error = 'no scoring function defined for task type: ' + task.task.type;
-	console.log( error );
-	res.status(404).json({error:error});
-	return;
+        const error = 'no scoring function defined for task type: ' + task.task.type;
+        console.log( error );
+        res.status(404).json({error:error});
+        return;
     }
 
     // Update the geoJSON with the scored trackline so we can easily display
     // what the pilot has been scored for
     _foreach( trackers, (pilot) => {
-	if( pilot.scoredpoints && pilot.scoredpoints.length>1) pilot.scoredGeoJSON = lineString(pilot.scoredpoints,{})
+        if( pilot.scoredpoints && pilot.scoredpoints.length>1) pilot.scoredGeoJSON = lineString(pilot.scoredpoints,{})
     } );
 
     // Update the vario
-//    _map( points, (points,compno) => calculateVario( trackers[compno], state[compno], points )  );
+    //    _map( points, (points,compno) => calculateVario( trackers[compno], state[compno], points )  );
 
     // Store our calculations away, we don't need to wait for this to return
     // This means we won't need to reprocess every track point the next time
@@ -226,7 +226,7 @@ export default async function scoreTask( req, res ) {
     // Return the results, this returns basically the same as the pilot
     // API call except it will be enriched with results if we have any
     res.status(200)
-	.json({pilots:trackers});
+        .json({pilots:trackers});
 }
 
 
@@ -237,36 +237,36 @@ function mergeDB( pilot, tracker )
 {
 
     if( ! tracker || ! tracker.compno ) {
-	tracker = _clone(pilot);       // by default use the db settings
+        tracker = _clone(pilot);       // by default use the db settings
         tracker.maxdistancedone = 0;   // how far, 0 isn't far
-	tracker.min = 999999999999;    // heights
-	tracker.max = 0;
-	if( tracker.datafromscoring == 'N' ) {
-	    tracker.utcstart = undefined;
-	    tracker.start = '00:00:00';
-	    tracker.utcfinish = undefined;
-	}
+        tracker.min = 999999999999;    // heights
+        tracker.max = 0;
+        if( tracker.datafromscoring == 'N' ) {
+            tracker.utcstart = undefined;
+            tracker.start = '00:00:00';
+            tracker.utcfinish = undefined;
+        }
     }
-    
+
     else {
-	// Until we have scoring we will keep our internal calculations
+        // Until we have scoring we will keep our internal calculations
         var copyKeys = [ 'dayrankordinal', 'lasttp', 'totalrank', 'prevtotalrank', 'lolat' ,'lolong', 'loreported', 'lonear',
                          'statustext', 'utctime', 'datafromscoring', 'lolat', 'lolng', 'looriginal',
                          'forcetp' ];
-	
+
         copyKeys.forEach( function(value) {
-	    tracker[value] = pilot[value];
+            tracker[value] = pilot[value];
         } );
-	
-	// If it has been scored or has a finish time in the database then copy the rest of the data over
-	if( pilot.datafromscoring == 'Y' || pilot.finish == 'Y' ) {
+
+        // If it has been scored or has a finish time in the database then copy the rest of the data over
+        if( pilot.datafromscoring == 'Y' || pilot.finish == 'Y' ) {
             var copyKeys = [ 'start', 'utcstart', 'finish', 'utcfinish', 'dbstatus', 'statustext', 'utctime', 'datafromscoring',
                              'hspeed', 'speed', 'hdistancedone', 'distancedone', 'forcetp' ];
-	    
+
             copyKeys.forEach( function(value) {
-		tracker[value] = pilot[value];
+                tracker[value] = pilot[value];
             } );
-	}
+        }
     }
 
     return tracker;
@@ -277,14 +277,14 @@ function calculateVario( tracker, state, points ) {
 
     // If we have a real score then we are not flying so don't report this...
     if( tracker.datafromscoring == 'Y' ) {
-	tracker.gainXsecond = undefined;
-	tracker.lossXsecond = undefined;
-	tracker.min = undefined;
-	tracker.max = undefined;
-	tracker.Xperiod = undefined;
-	tracker.altitude = undefined;
-	tracker.agl = undefined;
-	return;
+        tracker.gainXsecond = undefined;
+        tracker.lossXsecond = undefined;
+        tracker.min = undefined;
+        tracker.max = undefined;
+        tracker.Xperiod = undefined;
+        tracker.altitude = undefined;
+        tracker.agl = undefined;
+        return;
     }
 
     let p = 0;
@@ -300,14 +300,14 @@ function calculateVario( tracker, state, points ) {
     tracker.gainXsecond = 0;
     tracker.lossXsecond = 0;
     tracker.Xperiod = 0;
-    
-    while( p < points.length-1 && points[p].t > endTime) {
-	const pt = points[p];
-	
-	tracker.min = Math.min(tracker.min,pt.a);
-	tracker.max = Math.max(tracker.max,pt.a);
 
-	if( pt.t > endVarioTime ) {
+    while( p < points.length-1 && points[p].t > endTime) {
+        const pt = points[p];
+
+        tracker.min = Math.min(tracker.min,pt.a);
+        tracker.max = Math.max(tracker.max,pt.a);
+
+        if( pt.t > endVarioTime ) {
             var diff = pt.a - points[p+1].a;
             if( diff > 0 ) {
                 tracker.gainXsecond += diff;
@@ -317,7 +317,7 @@ function calculateVario( tracker, state, points ) {
             }
             tracker.Xperiod = firstTime - points[p+1].t;
         }
-	p++;
+        p++;
     }
 
     // So we know
@@ -328,15 +328,15 @@ function calculateVario( tracker, state, points ) {
     if( tracker.Xperiod && tracker.Xperiod < 90 ) {
         tracker.gainXsecond = Math.round(tracker.gainXsecond*10)/10;
         tracker.lossXsecond = Math.round(tracker.lossXsecond*10)/10;
-	// 9.87 = feet/minute to knots
-	// 60 = m/minute to m/sec
+        // 9.87 = feet/minute to knots
+        // 60 = m/minute to m/sec
         tracker.averager = Math.round(((tracker.gainXsecond + tracker.lossXsecond) / tracker.Xperiod )*10)/10;
-//        tracker.averager = Math.round(((tracker.gainXsecond + tracker.lossXsecond) / tracker.Xperiod) * 60 / (map.og_units?9.87:6))/10;
+        //        tracker.averager = Math.round(((tracker.gainXsecond + tracker.lossXsecond) / tracker.Xperiod) * 60 / (map.og_units?9.87:6))/10;
     }
     else {
         tracker.gainXsecond = undefined;
         tracker.lossXsecond = undefined;
         tracker.averager = undefined;
-	tracker.Xperiod = undefined;
+        tracker.Xperiod = undefined;
     }
 }
