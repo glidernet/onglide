@@ -1,5 +1,9 @@
 ## Installing
 
+THIS IS THE WRONG BRANCH! 
+
+It was used for the early commits and is now retired...
+
 #### Requirements
 
 - Mysql server with a database
