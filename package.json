@@ -8,7 +8,8 @@
     "scripts": {
         "build": "next build",
         "soaringspot": "bin/soaringspot.js",
-        "setup": "bin/install.js"
+        "setup": "bin/install.js",
+        "ogn": "bin/onglide_ogn.pl"
     },
     "dependencies": {
         "@turf/boolean-point-in-polygon": "^6.0.1",
