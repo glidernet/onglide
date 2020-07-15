@@ -36,13 +36,21 @@ async function main() {
         process.exit();
     }
 
-    const cfg = dotenv.parsed;
+    const config = dotenv.parsed;
 
-    soaringSpot(cfg);
+    mysql.config({
+        host: config.MYSQL_HOST,
+        database: config.MYSQL_DATABASE,
+        user: config.MYSQL_USER,
+        password: config.MYSQL_PASSWORD
+    });
+
+
+    soaringSpot();
 
     console.log( "Background download from soaring spot enabled" );
     setInterval( function() {
-        soaringSpot(cfg);
+        soaringSpot();
     }, 5*60*1000 );
 }
 
@@ -55,15 +63,9 @@ main()
 //
 // Function to score any type of task - checks the task type field in the database
 // to decide how to delegate to the various different kinds of tasks
-async function soaringSpot(config,deep = false) {
+async function soaringSpot(deep = false) {
 
-    mysql.config({
-        host: config.MYSQL_HOST,
-        database: config.MYSQL_DATABASE,
-        user: config.MYSQL_USER,
-        password: config.MYSQL_PASSWORD
-    });
-
+    console.log("\033[1mChecking SoaringSpot\033[0m @ "+(new Date().toString()));
 
     // Get the soaring spot keys from database
     let keys = (await mysql.query(escape`
