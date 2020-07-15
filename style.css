@@ -1,0 +1,349 @@
+
+
+body {
+    padding-top: 40px;
+    position: relative;
+}
+
+@media (max-width: 979px) {
+    body {
+        padding-top: 0px !important;
+    }
+    .navbar-nav.pull-right { float: none!important; }
+}
+
+@media (max-width: 1039px) {
+    .dayarrows {
+        display:none;
+    }
+}
+
+.doclearboth:after {
+    content:"";
+    display:table;
+    clear:both;
+}
+.doclearboth:before {
+    content:"";
+    display:table;
+    clear:both;
+}
+
+
+span.pilotstatus {
+    opacity: 0.7;
+    font-size: 80%;
+    float: right;
+}
+
+div.dates {
+    float:right; top: -11px; margin-bottom: -11px; clear: right; font-size: 11px; position: relative; line-height: 11px; padding: none;
+}
+
+i {
+    padding-right: 2px;
+}
+
+pre {
+    font-family:Verdana, Arial, Helvetica, sans-serif;
+}
+
+td.small img {
+    max-width:50px;
+    max-height:50px;
+    padding: 0px;
+}
+
+
+.small-pic {
+    margin-left: 1px !important;
+    margin-right: 1px !important;
+    margin-bottom: 5px !important;
+    border: 1px solid #eee;
+    background: white !important;
+    width:50px;
+    height:85px;
+}
+
+.small-pic > a  {
+    max-width:50px;
+    max-height:50px;
+    padding: 0px;
+}
+
+.small-pic > a img {
+    max-width:50px;
+    max-height:50px;
+    vertical-align: middle;
+    padding: 0px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.small-pic .ih {
+    width: 50px;
+    height: 50px;
+    align: center;
+    vertical-align: top;
+
+    padding: 0px;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+.small-pic .ih .icountry {
+    width: 20px;
+    height: 10px;
+    vertical-align: top;
+    padding: 0px;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+.details-flag {
+    width: 70px;
+    height: 30px;
+    align: center;
+    vertical-align: top;
+    margin-top: 5px;
+
+    padding: 0px;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    float: left;
+}
+
+.obscured {
+    opacity: 0.3 !important;
+    border: 1px solid #eee;
+}
+
+/* altitude band colours */
+.hgreen {
+    color: green;
+    opacity: 1.0 !important;
+}
+.horange {
+    color: orange;
+}
+.hred {
+    color: red;
+}
+
+.small-pic.selected > a, .small-pic.selected >a:hover{
+    color: white !important;
+    background-color: grey !important;
+}
+.small-pic.selected {
+    border: 1px solid grey;
+    height: 85px;
+    color: white !important;
+    background-color: grey !important;
+}
+.selected {
+    background: grey;
+    color: white;
+}
+
+.selected .ih {
+    /*    background: black !important; */
+    color: white;
+}
+
+.small-pic .data {
+    width: 40px;
+    float: left;
+}
+
+.small-pic .height {
+    width: 2px;
+    float: left;
+    margin-top: 10px;
+    height: 20px;
+    border-left: 2px solid white;
+}
+
+.small-pic .units {
+    float: right;
+    width: 10px;
+    height: 10px;
+    font-size: 10px;
+    margin-left: -5px;
+    transform-origin: 64% 95% 0;
+
+    /* Safari */
+    -webkit-transform: rotate(-90deg);
+    -webkit-transform-origin: 64% 95% 0;
+
+    /* Firefox */
+    -moz-transform: rotate(-90deg);
+
+    /* IE */
+    -ms-transform: rotate(-90deg);
+
+    /* Opera */
+    -o-transform: rotate(-90deg);
+
+    /* Internet Explorer */
+    filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
+
+    float: right;
+}
+
+
+.pilot .details {
+    width: 100%;
+    border: 1px solid grey;
+    margin-bottom: 10px;
+    margin-right: 10px;
+    padding-left: 5px;
+    margin-top: -5px;
+    margin-left: 1px;
+}
+
+div.details {
+    clear: both;
+    color: white !important;
+    background-color: grey !important;
+    width: 100%;
+}
+
+
+.small-pic .caption {
+    font-weight: bold;
+    padding: 0px;
+    line-height: 15px;
+}
+
+.small-pic .info {
+    padding: 0px;
+    line-height: 15px;
+}
+
+td.small-pic > img {
+    max-width:50px;
+    max-height:50px;
+    padding: 0px;
+}
+
+.small-pic > a {
+    text-align: center;
+    vertical-align: bottom;
+    color: #49604C
+}
+
+.small-pic > a:hover, .small-pic > a:focus {
+    text-decoration: none;
+    color: #49604C
+}
+
+.small-pic div p {
+    margin-bottom: 3px;
+}
+
+.nav > li > a.padded {
+    padding: 10px 10px !important;
+}
+
+.nav > li > a {
+    padding: 10px 6px !important;
+
+}
+
+
+ul.pilots {
+    list-style-type: none;
+    padding: 0px;
+    margin: 0px;
+}
+
+ul.pilots li {
+    display: block;
+    float: left;
+}
+
+.pilots {
+    font-size: 13px;
+}
+
+.signalpoor { color: red; }
+.signalok { color: white; }
+.signalgood { font-weight: bold; }
+
+
+a { text-decoration:none; }
+a:hover { text-decoration:underline; color:#548F54; }
+
+
+a.selectimage:hover {
+    opacity: 1.0 !important;
+}
+
+
+.loading {
+    position: absolute;
+    top: 50%;
+    left: 0px;
+    width: 90vw;
+    height: 90vh;
+    background: white;
+}
+.loadinginner {
+    background: url('/outline.gif');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    height: 130px;
+    width: 130px;
+    position: absolute;
+    top: 50%;
+    margin-top: -20px;
+    margin-left: -20px;
+    -webkit-animation: slide 6s -2.4s ease-in-out infinite;
+    animation: slide 6s -2.4s ease-in-out infinite;
+}
+
+@keyframes slide {
+    0% {
+        left: 0%;
+        transform:rotate(45deg);
+    }
+    30% {
+        left: 60%;
+        transform:rotate(45deg);
+    }
+    60% {
+	top: 50%;
+        left: 60%;
+        transform:rotate(360deg);
+	transform-origin: 100% 100%;
+    }
+    100% {
+        left: 110%;
+	top: -30%;
+        transform:rotate(360deg);
+    }
+}
+@-webkit-keyframes slide {
+    0% {
+        left: 0%;
+        transform:rotate(45deg);
+    }
+    30% {
+        left: 60%;
+        transform:rotate(45deg);
+    }
+    60% {
+        left: 60%;
+        transform:rotate(360deg);
+	transform-origin: 0% 0%;
+    }
+    100% {
+        left: 110%;
+	top: -30%;
+        transform:rotate(360deg);
+    }
+}
