@@ -21,8 +21,8 @@ export default async function competitionHandler( req, res) {
          SELECT c.class, c.classname, c.description, cs.datecode, cs.status
            FROM classes c, compstatus cs where c.class=cs.class ORDER BY c.class`);
 
-    // How long should it be cached - 60 seconds is goo
-    res.setHeader('Cache-Control','max-age=6000');
+    // How long should it be cached - 5 minutes is ok
+    res.setHeader('Cache-Control','max-age=300');
 
     // And we succeeded - here is the json
     res.status(200)
