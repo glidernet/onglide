@@ -187,6 +187,7 @@ NEXT_SCORE_REFRESH_INTERVAL=60000
 
     console.log( envFile );
 
+    fs.renameSync( '.env.local', '.env.backup' );
     fs.writeFileSync( '.env.local', envFile, (err) => {
         console.log( "Unable to write file (.env.local)" );
         console.log( err );
