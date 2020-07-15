@@ -100,11 +100,21 @@ function CombinePage( props ) {
 	return (<div className="loading">
 		    <div className="loadinginner"/>
 		</div>) ;
+
     if (error||!comp.competition) 
 	return (<div>
-		    <h5 style={{position:'fixed', zIndex:'10', marginLeft:'10px' }}>
-			Unable to load competition, please see <a href="https://github.com/glidernet/onglide/blob/main/readme.md">readme.md</a> for setup instructions
-		    </h5>
+		    <div style={{position:'fixed', zIndex:'10', marginLeft:'10px' }}>
+			<h1>
+			    Welcome to Onglide
+			</h1>
+			<p>
+			    Please see <a href="https://github.com/glidernet/onglide/blob/main/readme.md">readme.md</a> for setup instructions.
+			</p>
+			<p>
+			    If you have configured the competition and the soaring spot load has completed but you are still seeing this screen then it may be your browser
+			    cache. <a href="https://kb.iu.edu/d/ahic">Indiana U</a> has instructions if you are unsure how to do this.
+			</p>
+		    </div>
 		    <div className="loading">
 			<div className="loadinginner"/>
 		    </div>
