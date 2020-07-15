@@ -46,6 +46,7 @@ select ($old_handle); # restore previously selected handle
 
 # map of connection id to 
 my %listeners;
+my %gliders;
 my @aprsfeeds;
 my %channels;
 
@@ -69,9 +70,10 @@ my $wsserver = Net::WebSocket::Server->new(
 	my $now = time();
 	my $nowStr = timestr($now);
 	foreach my $connection ( $serv->connections ) {
-                $connection->send_utf8(sprintf('{"keepalive":1,"t":"%s","at":%d,"listeners":%d}',
-					       $nowStr, $now, $listeners{$connection->{channel}} ));
+                $connection->send_utf8(sprintf('{"keepalive":1,"t":"%s","at":%d,"listeners":%d,"airborne":%d}',
+					       $nowStr, $now, $listeners{$connection->{channel}}, (scalar keys %{$gliders{$connection->{channel}}} ) ));
 	}
+	%gliders = ();
 
 	# check every 10 minutes - on_tick is called every 60 seconds
 	if( $now % 600 < 60 ) {
@@ -151,8 +153,8 @@ my $wsserver = Net::WebSocket::Server->new(
 		# send a keepalive so that it's obvious the stream has started
 		my $now = time();
 		my $nowStr = timestr($now);
-                $conn->send_utf8(sprintf('{"keepalive":1,"t":"%s","at":%d,"listeners":%d}',
-						   $nowStr, $now, $listeners{$conn->{channel}} ));
+                $conn->send_utf8(sprintf('{"keepalive":1,"t":"%s","at":%d,"listeners":%d,"airborne":%d}',
+					       $nowStr, $now, $listeners{$conn->{channel}}, (scalar keys %{$gliders{$conn->{channel}}} ) ));
 
 		# and some logging
 #		print "connection for $conn->{channel} now ready\n";
@@ -354,10 +356,21 @@ sub doGliderStuff {
 
         $compno = uc $tracker->{compno};
         my $timedifference = $time - ($tracker->{lasttime}||$time);
+	my $channel = uc($is->{site}.$tracker->{channel});
 
 	$agl = List::Util::max($alt-elevation( $lt, $lg ),0);
         printf( "\r%s (%3d): %8s: %.3f,%.3f (%4dm/%4dm) %11s %4.1f db: %10s", timestr($time), $td, $compno,$lt, $lg, $alt, $agl, $sid, $signal, $is->{site} );
 	$printedalready = 1;
+
+	# how many gliders are we tracking for this channel
+	if( exists $gliders{$channel} ) {
+	    $gliders{$channel}{$compno} = 1;
+	    $gliders{$is->{site}.'all'}{$compno} = 1;
+	}
+	else {
+	    $gliders{$channel} = { $compno => 1 };
+	    $gliders{$is->{site}.'all'} = {$compno => 1 };
+	}
 	
         # if we have a glider over 100m QFE
         my $class = $tracker->{class};
@@ -370,21 +383,24 @@ sub doGliderStuff {
 	    $launching{$tracker->{channel}} = 1;
         }
 
-
 	if( ! $islate ) {
+
+	    my ($loss,$gain,$total,$avg,$vtime,$min,$max) = calculateVario($tracker,$alt,$time);
+	    print "$compno>$loss,$gain,$total,$avg";
 	    my $c = 0;
-	    foreach my $ws ( values %{$channels{ uc($is->{site}.$tracker->{channel}) }->{connections}||{}} ) {
+	    foreach my $ws ( values %{$channels{ $channel }->{connections}||{}} ) {
 		$c++;
-                $ws->send_utf8(sprintf('{"g":"%s","lat":%.4f,"lng":%.4f,"alt":%d,"t":"%s","at":%d,"agl":%d,"s":%4.1f}',
-				       $compno, $lt, $lg, $alt, timestr($time), $time, $agl, $signal));
+                $ws->send_utf8(sprintf('{"g":"%s","lat":%.4f,"lng":%.4f,"alt":%d,"t":"%s","at":%d,"agl":%d,"s":%4.1f,"v":"%d,%d,%.1f,%d,%d,%d"}',
+				       $compno, $lt, $lg, $alt, timestr($time), $time, $agl, $signal, $loss, $gain, $avg, $vtime,$min,$max));
 	    }
 	    foreach my $ws ( values %{$channels{ uc($is->{site}.'all') }->{connections}||{}} ) {
 		$c++;
-                $ws->send_utf8(sprintf('{"g":"%s","lat":%.4f,"lng":%.4f,"alt":%d,"t":"%s","at":%d,"agl":%d,"s":%4.1f}',
-				       $compno, $lt, $lg, $alt, timestr($time), $time, $agl, $signal));
+                $ws->send_utf8(sprintf('{"g":"%s","lat":%.4f,"lng":%.4f,"alt":%d,"t":"%s","at":%d,"agl":%d,"s":%4.1f,"v":"%d,%d,%.1f,%d,%d,%d"}',
+				       $compno, $lt, $lg, $alt, timestr($time), $time, $agl, $signal, $loss, $gain, $avg, $vtime,$min,$max));
 	    }
 
 	    printf( " (sent %d)", $c );
+
 	}
 	else {
 	    printf( " (late)" );
@@ -441,7 +457,7 @@ sub doGliderStuff {
 			$is->{trackers}->{$flarmid} = $possibleglider;
 			print "\n-----> $flarmid associated with ".$possiblecompno;
 			$is->{sth_recordtracker}->execute( $flarmid,  $possiblecompno, $possibleglider->{class} );
-			$is->{sth_recordtracker2}->execute( $possiblecompno, $flarmid, $time );
+			$is->{sth_recordtracker2}->execute( $possiblecompno, $flarmid, dbtimestr($time) );
 		    }
 		    else {
 			print "\n! not learning $flarmid as $possiblecompno as duplicate compno in multiple classes";
@@ -690,6 +706,10 @@ sub timestr {
     my @t = gmtime($_[0]);
     return sprintf( "%02d:%02d:%02dZ", $t[2], $t[1], $t[0] );
 }
+sub dbtimestr {
+    my @t = gmtime($_[0]);
+    return sprintf( "%02d:%02d:%02d", $t[2], $t[1], $t[0] );
+}
 
 sub shiftDate {
     my @t = gmtime($_[0]);
@@ -810,7 +830,46 @@ sub readDDB  {
 }
 		
 		    
+sub calculateVario {
+    my ($tracker,$alt,$t) = @_;
 
- 
+    if( ! $tracker->{vario} ) {
+	$tracker->{vario} = [ { t => $t, a => $alt, m => 999999999, x => 0 } ];
+	return (0,0,0,0,0,0,0);
+    }
 
+    my $varray = $tracker->{vario};
+
+    # add the new point
+    push @{$varray}, { t => $t, a => $alt };
+
+    $varray->{m} = $alt if( $alt < $varray->{m} );
+    $varray->{x} = $alt if( $alt > $varray->{x} );
+
+    # if the period is longer than 60 seconds then drop the beginning one
+    if( $varray->[0]->{t} < $t - 60 ) {
+	shift @{$varray};
+    }
+
+    if( scalar @{$varray} < 2 ) {
+	return (0,0,0,0,0,$varray->{m},$varray->{x}); #, this ensures we always have two points
+    }
+
+    my $loss = 0;
+    my $gain = 0;
+    my $previousAlt = -1;
+    foreach my $p ( @{$varray} ) {
+	if( $previousAlt && $previousAlt > 0 ) {
+	    my $diff = $p->{a} - $previousAlt;
+	    $gain += $diff if( $diff > 0 );
+	    $loss -= $diff if( $diff < 0 );
+	}
+	$previousAlt = $p->{a};
+    }
+
+    my $total = $previousAlt - $varray->[0]->{a};
+    my $elapsed = $varray->[scalar @{$varray}-1]->{t} - $varray->[0]->{t};
+
+    return ( $loss, $gain, $total, $total/$elapsed, $elapsed, $varray->{m}, $varray->{x} );
+}
 
