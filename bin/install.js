@@ -170,6 +170,27 @@ async function main() {
 
     const mresponse = await prompts(mquestions, {onCancel});
 
+    console.log( "\nDEM path (Download and unzip from https://dds.cr.usgs.gov/srtm/version2_1/SRTM3/):" );
+    const dquestions = [
+        {
+            type: 'confirm',
+            name: 'hasdem',
+            message: 'Have you got DEM files',
+            initial: (nE.DEM_PATH != 'none'),
+        },
+        {
+            type: prev => prev == true ? 'text' : null,
+            name: 'dempath',
+            message: 'DEM Path [none for none]',
+            initial: (nE.DEM_PATH || 'none')
+        },
+    ];
+
+    const dresponse = await prompts(dquestions, {onCancel});
+
+    // Correct to ensure no trailing /
+    let dpath = (dresponse.dempath ? dresponse.dempath.replace(/\/$/,'') : 'none')
+
     console.log( "\nUpdating .env.local" );
 
     const fs = require('fs');
@@ -179,6 +200,7 @@ MYSQL_DATABASE=${response.database}
 MYSQL_USER=${response.dbuser}
 MYSQL_PASSWORD=${response.dbpw}
 API_HOSTNAME=${wsresponse.apihost}
+DEM_PATH=${dpath}
 NEXT_PUBLIC_WEBSOCKET_HOST=${wsresponse.wshost}
 NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=${mresponse.key}
 NEXT_PUBLIC_SITEURL=${wsresponse.url}
