@@ -45,7 +45,7 @@ CREATE TABLE `comprules` (
   `hcapmodifiers` char(1) DEFAULT 'N',
   `grandprixstart` char(1) DEFAULT 'N',
   PRIMARY KEY (`country`,`name`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='See Scoring section of rules for details';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='See Scoring section of rules for details';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -66,11 +66,11 @@ DROP TABLE IF EXISTS `classes`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `classes` (
   `class` char(15) NOT NULL,
-  `classname` char(15) NOT NULL,
+  `classname` char(30) NOT NULL,
   `description` varchar(200) DEFAULT '',
   `type` char(20) DEFAULT NULL,
   UNIQUE KEY `class` (`class`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -84,7 +84,7 @@ CREATE TABLE `compdayshelper` (
   `year` int(11) DEFAULT NULL,
   `month` int(11) DEFAULT NULL,
   `day` int(11) DEFAULT NULL
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -109,7 +109,7 @@ CREATE TABLE `competition` (
   `mainwebsite` varchar(240) DEFAULT NULL COMMENT 'Used when clicking on comp name to return to primary website',
   `lt` float DEFAULT NULL COMMENT 'launch/landing location',
   `lg` float DEFAULT NULL COMMENT 'launch/landing location'
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Main settings for the competition';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Main settings for the competition';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -141,7 +141,7 @@ CREATE TABLE `compstatus` (
   `briefdc` char(4) DEFAULT NULL,
   `grid` char(20) DEFAULT '',
   UNIQUE KEY `class` (`class`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Current competition status, one row per class';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Current competition status, one row per class';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -172,7 +172,7 @@ CREATE TABLE `contestday` (
   `minspeed` int(11) DEFAULT '65',
   `notes` text,
   PRIMARY KEY (`class`,`datecode`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 
@@ -192,7 +192,7 @@ CREATE TABLE `errorlog` (
   `queryuser` char(30) DEFAULT NULL,
   `extra1` text,
   `extra2` text
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 
@@ -217,7 +217,7 @@ CREATE TABLE `images` (
   PRIMARY KEY (`filename`),
   KEY `typeindex` (`type`),
   KEY `keyidx` (`type`,`keyid`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -238,7 +238,7 @@ CREATE TABLE `logindetails` (
   `originalpw` text,
   `mobilekey` text NOT NULL,
   PRIMARY KEY (`username`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -250,7 +250,7 @@ DROP TABLE IF EXISTS `msg`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `msg` (
   `msg` text
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 
@@ -309,7 +309,7 @@ CREATE TABLE `pilotresult` (
   KEY `class` (`class`),
   KEY `datecode` (`datecode`),
   KEY `compno` (`compno`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Stores results for a pilot along with landout and status information';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Stores results for a pilot along with landout and status information';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -355,7 +355,7 @@ CREATE TABLE `pilots` (
   PRIMARY KEY (`class`,`compno`),
   UNIQUE KEY `username` (`username`),
   KEY `fai` (`fai`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 
@@ -407,7 +407,7 @@ CREATE TABLE `taskleg` (
 
   PRIMARY KEY (`taskid`,`legno`),
   KEY `class` (`class`,`datecode`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='One row per TP, leg 0 is before start(tp0), 1 from start(tp0) to tp1, last is finish';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='One row per TP, leg 0 is before start(tp0), 1 from start(tp0) to tp1, last is finish';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -436,7 +436,7 @@ CREATE TABLE `tasks` (
   PRIMARY KEY (`taskid`),
   UNIQUE KEY `integrity` (`class`,`datecode`,`task`),
   KEY `class` (`class`)
-) ENGINE=MyISAM AUTO_INCREMENT=152937 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=152937 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -454,7 +454,7 @@ CREATE TABLE `tracker` (
   `trackerid` text,
   `class` char(15) NOT NULL DEFAULT '',
   PRIMARY KEY (`class`,`compno`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -491,7 +491,7 @@ CREATE TABLE `trackpoints` (
   `agl` int(11) NOT NULL,
   `t` int(11) NOT NULL DEFAULT '0' COMMENT 'timestamp epoch',
   UNIQUE KEY `cda` (`datecode`,`class`,`compno`,`t`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 
@@ -509,7 +509,7 @@ CREATE TABLE `pilotlostatushelper` (
   `image` varchar(100) DEFAULT 'outline.gif',
   `after` char(10) NOT NULL,
   PRIMARY KEY (`status`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -534,7 +534,7 @@ CREATE TABLE `sectortypes` (
   `name` char(20) DEFAULT NULL,
   `defaults` char(40) DEFAULT NULL,
   KEY `st` (`countrycode`,`name`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
