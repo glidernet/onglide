@@ -103,8 +103,6 @@ async function soaringSpot(config,deep = false) {
             });
         }
     });
-
-    console.log( 'completed updating' );
 }
 /*
 
@@ -133,8 +131,6 @@ async function update_class(compClass, keys) {
           .replace(/\s*(class|klasse)/gi,'')
           .replace(/[^A-Z0-9]/gi,'')
           .substring(0,14);
-
-    console.log( "update_class "+name );
 
     // Add to the database
     await mysql.query( escape`
@@ -223,7 +219,7 @@ async function update_pilots(class_url,classid,classname,keys) {
     // And update the pilots picture to the latest one in the image table - this should be set by download_picture
     //   .query( 'UPDATE PILOTS SET image=(SELECT filename FROM images WHERE keyid=compno AND width IS NOT NULL ORDER BY added DESC LIMIT 1)' );
 
-        .rollback( e => { console.log(e) } )
+        .rollback( e => { console.log("rollback") } )
         .commit();
 }
 
@@ -232,7 +228,6 @@ async function update_pilots(class_url,classid,classname,keys) {
 //
 // for a given class update all the results
 async function process_class_results (class_url,classid,classname,keys) {
-    let rows = 0;
     let latest_date_with_pilots = undefined;
 
     const results = await sendSoaringSpotRequest( class_url+'/results', keys );
@@ -241,10 +236,11 @@ async function process_class_results (class_url,classid,classname,keys) {
         return 0;
     }
 
+    let dates = [];
     await results._embedded['http://api.soaringspot.com/rel/class_results'].forEach( async function (day) {
 
         const date = day.task_date;
-        console.log( `${classname}: processing ${date}` );
+        dates.push(date);
 
         latest_date_with_pilots = await process_day_task( day, classid, classname, latest_date_with_pilots, keys );
 
@@ -269,8 +265,7 @@ async function process_class_results (class_url,classid,classname,keys) {
         await mysql.query( escape`UPDATE compstatus SET resultsdatecode = todcode(${latest_date_with_pilots}) where class=${classid}`);
     }
 
-    console.log( `${classname}: done.` );
-    return rows;
+    console.log( `${classname}: ${dates.join(',')} scheduled` );
 }
 
 
@@ -279,10 +274,6 @@ async function process_class_results (class_url,classid,classname,keys) {
 async function process_day_task (day,classid,classname,latest_date_with_pilots,keys) {
     let rows = 0;
     let date = day.task_date;
-
-    if( date != '2020-07-15' ) {
-        return;
-    }
 
     const task_details = await sendSoaringSpotRequest( day._links.self.href, keys );
 
@@ -315,12 +306,20 @@ async function process_day_task (day,classid,classname,latest_date_with_pilots,k
     // If there are no turnpoints then it isn't a valid task
     const turnpoints = await sendSoaringSpotRequest( task_details._links['http://api.soaringspot.com/rel/points'].href, keys );
     if( !turnpoints || ! turnpoints._embedded['http://api.soaringspot.com/rel/points'] ) {
-        console.log( "$classid/${date}: no turnpoints for task" );
+        console.log( `${classid} - ${date}: no turnpoints for task` );
         return;
     }
 
+    // So we don't rebuild tasks if they haven't changed
+    const hash = crypto.createHash('sha256').update(JSON.stringify(turnpoints)).update(JSON.stringify(task_details)).digest('base64');
+    const dbhash = (await mysql.query( escape`SELECT hash FROM tasks WHERE datecode=todcode(${date}) AND class=${classid}` ))[0].hash;
 
-    console.log( task_details );
+    if( hash == dbhash ) {
+        return;
+    }
+    else {
+        console.log( `${classid} - ${date}: task changed` );
+    }
 
     // Do this as one block so we don't end up with broken tasks
     mysql.transaction()
@@ -335,12 +334,12 @@ async function process_day_task (day,classid,classname,latest_date_with_pilots,k
 
     // and add a new one
         .query( escape`
-          INSERT INTO tasks (datecode, class, flown, description, distance, hdistance, duration, type, task )
+          INSERT INTO tasks (datecode, class, flown, description, distance, hdistance, duration, type, task, hash )
              VALUES ( todcode(${date}), ${classid},
                       'N', ${task_details.task_type},
                       ${task_details.task_distance/1000},
                       ${task_details.task_distance/1000},
-                      ${duration}, ${tasktype}, 'B' )`)
+                      ${duration}, ${tasktype}, 'B', ${hash} )`)
 
     // This query is a built one as we have to have it all as one string :( darn transactions
 
@@ -351,7 +350,6 @@ async function process_day_task (day,classid,classname,latest_date_with_pilots,k
                 console.log( taskid );
                 return null;
             }
-            console.log( "taskid:"+taskid );
 
             let values = [];
             let query = "INSERT INTO taskleg ( class, datecode, taskid, legno, "+
@@ -437,7 +435,7 @@ async function process_day_task (day,classid,classname,latest_date_with_pilots,k
     // if they are marked as flying etc
         .query( escape`UPDATE compstatus SET status='B' WHERE class=${classid} AND datecode=todcode(${date}) AND status NOT IN ( 'L', 'S', 'R', 'H', 'Z' )`)
 
-        .rollback( (e) => { console.log( e ); } )
+        .rollback( (e) => { console.log( "rollback" ); } )
         .commit();
 
     // and some logging
@@ -619,10 +617,8 @@ async function update_contest(contest,keys) {
     }
 
     // And fix the URL to whatever is configured in soaringspot
-    console.log(contest._links['http://api.soaringspot.com/rel/www'].href);
     let [url] = (''+contest._links['http://api.soaringspot.com/rel/www'].href).match(/(http[^']*)/);
     if( url ) {
-        console.log(url);
         await mysql.query( escape`UPDATE competition set mainwebsite=${url}` );
     }
 

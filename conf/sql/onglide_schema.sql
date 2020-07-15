@@ -433,6 +433,9 @@ CREATE TABLE `tasks` (
   `maxmarkingdistance` float DEFAULT NULL COMMENT 'Distance for lowesthandicapped glider',
   
   `duration` time DEFAULT NULL COMMENT 'AAT time',
+
+  `hash` TEXT DEFAULT NULL COMMENT 'hash of value from soaring spot to prevent redownloading',
+  
   PRIMARY KEY (`taskid`),
   UNIQUE KEY `integrity` (`class`,`datecode`,`task`),
   KEY `class` (`class`)
