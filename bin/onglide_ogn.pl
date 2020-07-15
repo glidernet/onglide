@@ -386,7 +386,6 @@ sub doGliderStuff {
 	if( ! $islate ) {
 
 	    my ($loss,$gain,$total,$avg,$vtime,$min,$max) = calculateVario($tracker,$alt,$time);
-	    print "$compno>$loss,$gain,$total,$avg";
 	    my $c = 0;
 	    foreach my $ws ( values %{$channels{ $channel }->{connections}||{}} ) {
 		$c++;
@@ -399,7 +398,7 @@ sub doGliderStuff {
 				       $compno, $lt, $lg, $alt, timestr($time), $time, $agl, $signal, $loss, $gain, $avg, $vtime,$min,$max));
 	    }
 
-	    printf( " (sent %d)", $c );
+	    printf( " (sent %d %s)", $c, $channel );
 
 	}
 	else {
@@ -495,7 +494,7 @@ sub fetchCompetitions {
 	    $user = $value if( $key eq 'USER' );
 	    $pw = $value if( $key eq 'PASSWORD' );
 	}
-	if( $l =~ m/^WEBSITENAME=(.*)$/ ) {
+	if( $l =~ m/^NEXT_PUBLIC_SITEURL=([^\.]+).*$/ ) {
 	    $site = $1;
 	}
 	if( $l =~ m/^DEM_PATH=(.*)$/ ) {
@@ -505,7 +504,7 @@ sub fetchCompetitions {
     close(FH);
 
     if( !$site || !$database || !$host || !$user || !$pw ) {
-	die "missing config, need MYSQL_(DATABASE|HOST|USER|PASSWORD) + WEBSITENAME in ../.env.local";
+	die "missing config, need MYSQL_(DATABASE|HOST|USER|PASSWORD) + NEXT_PUBLIC_SITE_URL in ../.env.local";
     }
 
     print "configured $host:$database, website: $site, dems: $dempath\n";
@@ -834,17 +833,19 @@ sub calculateVario {
     my ($tracker,$alt,$t) = @_;
 
     if( ! $tracker->{vario} ) {
-	$tracker->{vario} = [ { t => $t, a => $alt, m => 999999999, x => 0 } ];
+	$tracker->{vario} = [ { t => $t, a => $alt } ];
+	$tracker->{minmax} = { m => 999999999, x => 0 };
 	return (0,0,0,0,0,0,0);
     }
 
     my $varray = $tracker->{vario};
+    my $minmax = $tracker->{minmax};
 
     # add the new point
     push @{$varray}, { t => $t, a => $alt };
 
-    $varray->{m} = $alt if( $alt < $varray->{m} );
-    $varray->{x} = $alt if( $alt > $varray->{x} );
+    $minmax->{m} = $alt if( $alt < $minmax->{m} );
+    $minmax->{x} = $alt if( $alt > $minmax->{x} );
 
     # if the period is longer than 60 seconds then drop the beginning one
     if( $varray->[0]->{t} < $t - 60 ) {
@@ -852,7 +853,7 @@ sub calculateVario {
     }
 
     if( scalar @{$varray} < 2 ) {
-	return (0,0,0,0,0,$varray->{m},$varray->{x}); #, this ensures we always have two points
+	return (0,0,0,0,0,$minmax->{m},$minmax->{x}); #, this ensures we always have two points
     }
 
     my $loss = 0;
@@ -870,6 +871,6 @@ sub calculateVario {
     my $total = $previousAlt - $varray->[0]->{a};
     my $elapsed = $varray->[scalar @{$varray}-1]->{t} - $varray->[0]->{t};
 
-    return ( $loss, $gain, $total, $total/$elapsed, $elapsed, $varray->{m}, $varray->{x} );
+    return ( $loss, $gain, $total, $total/$elapsed, $elapsed, $minmax->{m}, $minmax->{x} );
 }
 
