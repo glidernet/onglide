@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 // Copyright 2020 (c) Melissa Jenkins
 // Part of Onglide.com competition tracking service
 // BSD licence but please if you find bugs send pull request to github
@@ -10,8 +12,8 @@ const fetcher = url => fetch(url).then(res => res.json());
 // DB access
 //const db = require('../db')
 const escape = require('sql-template-strings')
-
 const mysql = require('serverless-mysql')();
+const fetch = require('node-fetch');
 
 
 // Fix the turpoint types from SoaringSpot to what we know
@@ -21,38 +23,45 @@ const oz_types = { 'symmetric': 'symmetrical',
                    'fixed':  'fixed',
                    'start':  'sp' }
 
-// Make sure it starts, but only once ;)
-let isRunning = false;
+
+// Load the current file
+const dotenv = require('dotenv').config({ path: '.env.local' })
+
 
 // Set up background fetching of the competition
-export default function startCompetitionDatabaseUpdateProcess() {
+async function main() {
 
-    if( ! isRunning ) {
-        isRunning = true;
-
-        soaringSpot();
-
-//        console.log( "Background download from soaring spot enabled" );
-
-        //        setInterval( function() {
-        //            soaringSpot();
-        //        }, 5*60*1000 );
+    if (dotenv.error) {
+        console.log( "New install: no configuration found, or script not being run in the root directory" );
+        process.exit();
     }
 
+    const cfg = dotenv.parsed;
+
+    soaringSpot(cfg);
+
+    console.log( "Background download from soaring spot enabled" );
+    setInterval( function() {
+        soaringSpot(cfg);
+    }, 5*60*1000 );
 }
+
+
+main()
+    .then("exiting");
 
 
 
 //
 // Function to score any type of task - checks the task type field in the database
 // to decide how to delegate to the various different kinds of tasks
-async function soaringSpot(deep = false) {
+async function soaringSpot(config,deep = false) {
 
     mysql.config({
-        host: process.env.MYSQL_HOST,
-        database: process.env.MYSQL_DATABASE,
-        user: process.env.MYSQL_USER,
-        password: process.env.MYSQL_PASSWORD
+        host: config.MYSQL_HOST,
+        database: config.MYSQL_DATABASE,
+        user: config.MYSQL_USER,
+        password: config.MYSQL_PASSWORD
     });
 
 
@@ -565,10 +574,10 @@ async function update_contest(contest,keys) {
     // Add a row if we need to
     const count = (await mysql.query( 'SELECT COUNT(*) FROM competition' ));
     if( ! count || !count[0] ) {
-	console.log( "Empty competition, pre-populating" );
+        console.log( "Empty competition, pre-populating" );
         mysql.query( 'INSERT IGNORE INTO COMPETITION ( tz ) VALUES ( "+00:00" )' );
     }
-    
+
     //
     // Make sure the dates are copied across
     await mysql.query( escape`
@@ -608,10 +617,10 @@ async function update_contest(contest,keys) {
     console.log(contest._links['http://api.soaringspot.com/rel/www'].href);
     let [url] = (''+contest._links['http://api.soaringspot.com/rel/www'].href).match(/(http[^']*)/);
     if( url ) {
-	console.log(url);
+        console.log(url);
         await mysql.query( escape`UPDATE competition set mainwebsite=${url}` );
     }
-    
+
     if( keys.deep ) {
         // clear it all down, we will load all of this from soaring spot
         // NOTE: this should not be cleared every time, even though at present it is
