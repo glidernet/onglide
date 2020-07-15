@@ -280,6 +280,10 @@ async function process_day_task (day,classid,classname,latest_date_with_pilots,k
     let rows = 0;
     let date = day.task_date;
 
+    if( date != '2020-07-15' ) {
+        return;
+    }
+
     const task_details = await sendSoaringSpotRequest( day._links.self.href, keys );
 
     if( ! task_details || ! task_details._links['http://api.soaringspot.com/rel/points'] ) {
@@ -314,6 +318,9 @@ async function process_day_task (day,classid,classname,latest_date_with_pilots,k
         console.log( "$classid/${date}: no turnpoints for task" );
         return;
     }
+
+
+    console.log( task_details );
 
     // Do this as one block so we don't end up with broken tasks
     mysql.transaction()
@@ -406,11 +413,9 @@ async function process_day_task (day,classid,classname,latest_date_with_pilots,k
 
     // Remove the old task and legs for this class and date
         .query( (r,ro) => { const taskid = ro[ro.length-2].insertId;
-                            return escape`DELETE FROM tasks WHERE class=${classid} AND taskid != ${taskid} AND datecode = todcode(${date})` })
+                            return ['DELETE FROM tasks WHERE class=? AND taskid != ? AND datecode = todcode(?)', [classid,taskid,date]]; })
         .query( (r,ro) => { const taskid = ro[ro.length-3].insertId;
-                            return escape`UPDATE tasks SET task='A' WHERE class=${classid} AND taskid = ${taskid}` })
-        .query( (r,ro) => { const taskid = ro[ro.length-4].insertId;
-                            return escape`SELECT * FROM taskleg WHERE class=${classid} AND taskid != ${taskid} AND datecode = todcode(${date})` })
+                            return ['UPDATE tasks SET task="A", flown="Y" WHERE class=? AND taskid = ?',[classid,taskid]]; })
 
     // redo the distance calculation, including calculating handicaps
         .query( (r,ro) => { const taskid = ro[ro.length-5].insertId;
