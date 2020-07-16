@@ -151,6 +151,7 @@ async function update_class(compClass, keys) {
     await update_pilots( compClass._links.self.href, classid, name, keys );
 
     // Import the results
+    await process_class_tasks( compClass._links.self.href, classid, name, keys );
     await process_class_results( compClass._links.self.href, classid, name, keys );
 
 }
@@ -226,11 +227,32 @@ async function update_pilots(class_url,classid,classname,keys) {
 }
 
 
+//
+// for a given class update all the tasks
+async function process_class_tasks (class_url,classid,classname,keys) {
+
+    const tasks = await sendSoaringSpotRequest( class_url+'/tasks', keys );
+    if( ! tasks ) {
+        console.log( `${classname}: no tasks` );
+        return 0;
+    }
+    let dates = [];
+    tasks._embedded['http://api.soaringspot.com/rel/tasks'].forEach( async function (day) {
+
+        dates.push(day.task_date);
+
+        // Download the task and prep pilotresult table
+        process_day_task( day, classid, classname, keys );
+    });
+
+
+    console.log( `${classname}: ${dates.join(',')} task checks scheduled` );
+}
+
 
 //
 // for a given class update all the results
 async function process_class_results (class_url,classid,classname,keys) {
-    let latest_date_with_pilots = undefined;
 
     const results = await sendSoaringSpotRequest( class_url+'/results', keys );
     if( ! results ) {
@@ -239,36 +261,21 @@ async function process_class_results (class_url,classid,classname,keys) {
     }
 
     let dates = [];
-    await results._embedded['http://api.soaringspot.com/rel/class_results'].forEach( async function (day) {
+    results._embedded['http://api.soaringspot.com/rel/class_results'].forEach( async function (day) {
 
-        const date = day.task_date;
-        dates.push(date);
-
-        // Download the task and prep pilotresult table
-        latest_date_with_pilots = await process_day_task( day, classid, classname, latest_date_with_pilots, keys );
+        dates.push(day.task_date);
 
         // Update the scores for the task
-        latest_date_with_pilots = await process_day_scores( day, classid, classname, latest_date_with_pilots, keys );
+        process_day_scores( day, classid, classname, keys );
     });
 
-
-    // update the previous total rank
-    await mysql.query( escape`update pilotresult pr1 left outer join pilotresult pr2
-               on pr1.compno = pr2.compno and pr2.datecode = todcode(date_sub(fdcode(pr1.datecode),interval 1 day))
-               set pr1.prevtotalrank = coalesce(pr2.totalrank,pr2.prevtotalrank)` );
-
-    //if we have some results then record this
-    if( latest_date_with_pilots ) {
-        await mysql.query( escape`UPDATE compstatus SET resultsdatecode = todcode(${latest_date_with_pilots}) where class=${classid}`);
-    }
-
-    console.log( `${classname}: ${dates.join(',')} scheduled` );
+    console.log( `${classname}: ${dates.join(',')} result checks scheduled` );
 }
 
 
 //
 // Store the task in the MYSQL
-async function process_day_task (day,classid,classname,latest_date_with_pilots,keys) {
+async function process_day_task (day,classid,classname,keys) {
     let rows = 0;
     let date = day.task_date;
 
@@ -278,6 +285,7 @@ async function process_day_task (day,classid,classname,latest_date_with_pilots,k
         console.log( classid + "/" + date + ": no details for task" );
         return;
     }
+
 
     let script = '';
     let info = task_details.info;
@@ -302,10 +310,6 @@ async function process_day_task (day,classid,classname,latest_date_with_pilots,k
 
     // If there are no turnpoints then it isn't a valid task
     const turnpoints = await sendSoaringSpotRequest( task_details._links['http://api.soaringspot.com/rel/points'].href, keys );
-    if( !turnpoints || ! turnpoints._embedded['http://api.soaringspot.com/rel/points'] ) {
-        console.log( `${classid} - ${date}: no turnpoints for task` );
-        return;
-    }
 
     // So we don't rebuild tasks if they haven't changed
     const hash = crypto.createHash('sha256').update(JSON.stringify(turnpoints)).update(JSON.stringify(task_details)).digest('base64');
@@ -343,8 +347,11 @@ async function process_day_task (day,classid,classname,latest_date_with_pilots,k
         .query( (r) => {
             const taskid = r.insertId;
             if( ! taskid ) {
-                console.log( "unable to insert task!" );
-                console.log( taskid );
+                console.log( `${classid} - ${date}: unable to insert task!` );
+                return null;
+            }
+            if( !turnpoints || !turnpoints._embedded || ! turnpoints._embedded['http://api.soaringspot.com/rel/points'] ) {
+                console.log( `${classid} - ${date}: no turnpoints for task` );
                 return null;
             }
 
@@ -436,18 +443,45 @@ async function process_day_task (day,classid,classname,latest_date_with_pilots,k
                                           status=values(status), notes=values(notes), calendardate=values(calendardate)`  )
 
     // if it is today then set the briefing status properly, this is an update so does nothing
-    // if they are marked as flying etc
-        .query( escape`UPDATE compstatus SET status='B' WHERE class=${classid} AND datecode=todcode(${date}) AND status NOT IN ( 'L', 'S', 'R', 'H', 'Z' )`)
+    // if they are marked as flying etc. If the day is cancelled we want that updated here as well
+    // Status not used at present but a way of keeping track of if they are flying etc.
+        .query( () => {
+            if( day.result_status != "cancelled" )
+                return ["UPDATE compstatus SET status='B' WHERE class=? AND datecode=todcode(?) AND status NOT IN ( 'L', 'S', 'R', 'H', 'Z' )", [classid,date]];
+            else
+                return ["UPDATE compstatus SET status='Z' WHERE class=? AND datecode=todcode(?)", [classid,date]];
+        })
+
+    // If it was cancelled then mark it as not flown, this will stop the UI from displaying it
+        .query( () => {
+            if( day.result_status == "cancelled" )
+                return [ 'UPDATE tasks SET flown="N" WHERE class=? AND datecode=todcode(?)', [classid,date]];
+            else
+                return null;
+        })
+        .query( () => {
+            if( day.result_status == "cancelled" )
+                return [ 'UPDATE contestday SET status="N" WHERE class=? AND datecode=todcode(?)', [classid,date]];
+            else
+                return null;
+        })
+    // Combine results
+    //  .query( escape`update pilotresult pr1 left outer join pilotresult pr2
+    //               on pr1.compno = pr2.compno and pr2.datecode = todcode(date_sub(fdcode(pr1.datecode),interval 1 day))
+    //               set pr1.prevtotalrank = coalesce(pr2.totalrank,pr2.prevtotalrank)` )
+
+    // Update the last date for results
+        .query( escape`UPDATE compstatus SET resultsdatecode = GREATEST(todcode(${date}),COALESCE(resultsdatecode,todcode(${date})))
+                       WHERE class=${classid}`)
 
         .rollback( (e) => { console.log( "rollback" ); } )
         .commit();
 
     // and some logging
     console.log( `${classname}: processed task ${date}` );
-    return latest_date_with_pilots;
 }
 
-async function process_day_scores (day,classid,classname,latest_date_with_pilots,keys) {
+async function process_day_scores (day,classid,classname,keys) {
     let rows = 0;
     let date = day.task_date;
 
@@ -533,8 +567,6 @@ async function process_day_scores (day,classid,classname,latest_date_with_pilots
                }
             */
 
-            // we need to update what we have results for
-            latest_date_with_pilots = ( latest_date_with_pilots && latest_date_with_pilots > date ) ? latest_date_with_pilots : row.scored_start;
         }
 
         // if somebody has manually put the start times into SeeYou then capture it
@@ -565,8 +597,6 @@ async function process_day_scores (day,classid,classname,latest_date_with_pilots
     //    if( status == 'preliminary' ) {
     //        await db.query( escape`call daypoints(${classid})` );
     //    }
-
-    return latest_date_with_pilots;
 }
 
 
