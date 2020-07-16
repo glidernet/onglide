@@ -244,15 +244,10 @@ async function process_class_results (class_url,classid,classname,keys) {
         const date = day.task_date;
         dates.push(date);
 
+        // Download the task and prep pilotresult table
         latest_date_with_pilots = await process_day_task( day, classid, classname, latest_date_with_pilots, keys );
 
-        // make sure we have result placeholder for each day, we will fail to save scores otherwise
-        await mysql.query( escape`INSERT IGNORE INTO pilotresult
-               ( class, datecode, compno, status, lonotes, start, finish, duration, distance, hdistance, speed, hspeed, igcavailable, turnpoints )
-             SELECT pilots.class, contestday.datecode,
-               compno, '-', '', '00:00:00', '00:00:00', '00:00:00', 0, 0, 0, 0, 'N', -2
-             FROM pilots, contestday WHERE pilots.class = contestday.class`);
-
+        // Update the scores for the task
         latest_date_with_pilots = await process_day_scores( day, classid, classname, latest_date_with_pilots, keys );
     });
 
@@ -314,9 +309,9 @@ async function process_day_task (day,classid,classname,latest_date_with_pilots,k
 
     // So we don't rebuild tasks if they haven't changed
     const hash = crypto.createHash('sha256').update(JSON.stringify(turnpoints)).update(JSON.stringify(task_details)).digest('base64');
-    const dbhash = (await mysql.query( escape`SELECT hash FROM tasks WHERE datecode=todcode(${date}) AND class=${classid}` ))[0].hash;
+    const dbhashrow = (await mysql.query( escape`SELECT hash FROM tasks WHERE datecode=todcode(${date}) AND class=${classid}` ));
 
-    if( hash == dbhash ) {
+    if( (dbhashrow && dbhashrow.length > 0) && hash == dbhashrow[0].hash ) {
         return;
     }
     else {
@@ -420,6 +415,13 @@ async function process_day_task (day,classid,classname,latest_date_with_pilots,k
     // redo the distance calculation, including calculating handicaps
         .query( (r,ro) => { const taskid = ro[ro.length-5].insertId;
                             return escape`call wcapdistance_taskid( ${taskid} )` })
+
+    // make sure we have result placeholder for each day, we will fail to save scores otherwise
+        .query( escape`INSERT IGNORE INTO pilotresult
+               ( class, datecode, compno, status, lonotes, start, finish, duration, distance, hdistance, speed, hspeed, igcavailable, turnpoints )
+             SELECT ${classid}, todcode(${date}),
+               compno, '-', '', '00:00:00', '00:00:00', '00:00:00', 0, 0, 0, 0, 'N', -2
+             FROM pilots WHERE pilots.class = ${classid}`)
 
     // And update the day with status and text etc
         .query( escape`INSERT INTO contestday (class, script, length, result_type, info, winddir, windspeed, daynumber, status,
