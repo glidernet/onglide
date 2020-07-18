@@ -113,3 +113,4 @@ dist
 .env.backup
 .DS_Store
 
+lib/.#htmlhelper.js
