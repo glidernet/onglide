@@ -26,15 +26,15 @@ export default async function taskHandler( req, res) {
     let task = await db.query(escape`
       SELECT tasks.*
       FROM tasks, compstatus cs
-      WHERE cs.class = ${className} AND tasks.class = cs.class 
-        AND cs.datecode = tasks.datecode AND tasks.flown = 'Y' 
+      WHERE cs.class = ${className} AND tasks.class = cs.class
+        AND cs.datecode = tasks.datecode AND tasks.flown = 'Y'
     `);
 
     if( ! task.length || ! task[0].taskid ) {
-	console.log( task );
-	res.status(200)
-	    .json({tp:'', track:''});
-	return;
+        console.log( task );
+        res.status(404)
+            .json({tp:'', track:''});
+        return;
     }
 
     let tasklegs = await db.query(escape`
@@ -60,29 +60,28 @@ export default async function taskHandler( req, res) {
                            });
 
     // Check distances (not used at present)
-//    const taskLength = calculateTaskLength( tasklegs );
+    //    const taskLength = calculateTaskLength( tasklegs );
 
     // Now calculate the objects, they get added to each turnpoint
     tasklegs.forEach( (leg) => { sectorGeoJSON( tasklegs, leg.legno ) });
 
 
     let geoJSON = {
-	"type": "FeatureCollection",
-	"features": []
+        "type": "FeatureCollection",
+        "features": []
     };
-    
+
     tasklegs.forEach( (leg) => { geoJSON.features = [].concat( geoJSON.features, [{ 'type': 'Feature', properties: {}, geometry: leg.geoJSON }] ) } );
 
     const trackLine = {
-            "type": "LineString",
-	"coordinates": tasklegs.map( (leg) => { return [ leg.ll.dlong(), leg.ll.dlat() ] } ),
+        "type": "LineString",
+        "coordinates": tasklegs.map( (leg) => { return [ leg.ll.dlong(), leg.ll.dlat() ] } ),
     };
-    
+
     // How long should it be cached
     res.setHeader('Cache-Control','max-age=600');
 
     // And we succeeded - here is the json
     res.status(200)
-	.json({tp:geoJSON, track:trackLine});
+        .json({tp:geoJSON, track:trackLine});
 }
-
