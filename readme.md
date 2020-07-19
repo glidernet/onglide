@@ -1,9 +1,11 @@
 ## Installing
 
+It isn't difficult to deploy and run this on your own server. However if you would prefer a hosted version please email
+your soaring spot keys to melissa-ogn@onglide.com and I can set it up for you.
+
 #### Requirements
 
 - Mysql server with a database
-- Perl 5.24+ with modules for Storable, List::Util, Ham::APRS::IS, Ham::APRS::FAP, DBI, Data::Dumper, Math::Trig, Time::HiRes, Time::Piece, URI, LWP::UserAgent, Net::WebSocket::Server, PDL;
 - Node and Yarn
 - Apache with caching modules (you can deploy the front end somewhere like vercel as well)
 
@@ -18,8 +20,6 @@
 
 - run the installation script, this will require a mapbox API key, and the database to be loaded
 > yarn setup
-
-- If you want HGL to work download the DEM files you need from https://dds.cr.usgs.gov/srtm/version2_1/SRTM3/ extract them to the bin/dem directory
 
 - configure your webserver (there is a sample file but you'll want certificates etc)
 

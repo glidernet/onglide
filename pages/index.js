@@ -1,5 +1,4 @@
 import next from 'next'
-
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
 
@@ -12,7 +11,7 @@ import Navbar from 'react-bootstrap/Navbar'
 import Nav from 'react-bootstrap/Nav'
 import NavDropdown from 'react-bootstrap/NavDropdown'
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 // Helpers for loading contest information etc
 import { useContest, usePilots, useTask, Spinner, Error } from '../lib/loaders.js';
@@ -23,6 +22,9 @@ import { PilotList } from '../lib/pilotlist.js';
 // Dynamically load the map as it's big and slow
 const TaskMap  = dynamic(() => import( '../lib/taskmap.js' ),
                          { loading: () => <Spinner/>});
+
+// And connect to websockets...
+import { OgnFeed } from '../lib/ognfeed.js';
 
 import Router from 'next/router'
 
@@ -89,6 +91,9 @@ function CombinePage( props ) {
         className = props.defaultClass;
     }
 
+    // For remote updating of the map
+    const mapRef = useRef(null);
+
     // Next up load the contest and the pilots, we can use defaults for pilots
     // if the className matches
     const { comp, isLoading, error } = useContest();
@@ -138,7 +143,10 @@ function CombinePage( props ) {
             <Container fluid>
                 <Row>
                     <Col sm={7}>
-                        <TaskMap vc={className} selectedPilot={selectedPilot} datecode={selectedClass?selectedClass.datecode:'07C'} mutatePilots={mutate} pilots={pilots}/>
+                        <TaskMap vc={className} datecode={selectedClass?selectedClass.datecode:'07C'} selectedPilot={selectedPilot}
+                                 mapRef={mapRef} pilots={pilots}/>
+                        <OgnFeed vc={className} datecode={selectedClass?selectedClass.datecode:'07C'} selectedPilot={selectedPilot}
+                                 pilots={pilots} mutatePilots={mutate} mapRef={mapRef}/>
                     </Col>
                     <Col>
                         <TaskDetails vc={className}/>
