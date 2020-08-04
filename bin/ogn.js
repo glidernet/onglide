@@ -38,6 +38,7 @@ const _map = require('lodash.map');
 const _keyby = require('lodash.keyby');
 const _foreach = require('lodash.foreach');
 const _sortby = require('lodash.sortby');
+const _remove = require('lodash.remove');
 
 // Handle fetching elevation and confirming size of the cache for tiles
 const { getElevationOffset, getCacheSize } = require('../lib/getelevationoffset.js');
@@ -128,12 +129,16 @@ async function main() {
         // Strip leading /
         const channel = req.url.substring(1,req.url.length);
 
-        console.log( 'connection received for' + channel );
+	ws.ognChannel = channel;
+	ws.ognPeer = req.headers['x-forwarded-for'];
+        console.log( `connection received for ${channel} from ${ws.ognPeer}` );
+
         if( channel in channels ) {
             channels[channel].clients.push( ws );
         }
         else {
             console.log( 'Unknown channel ' + channel );
+	    ws.disconnect();
         }
 
         ws.isAlive = true;
@@ -334,17 +339,24 @@ async function sendScores() {
         };
         const keepAliveMsg = JSON.stringify( keepAlive );
 
+	// Remove any that are still marked as not alive
+	const toterminate = _remove( channel.clients, (client) => {
+            return (client.isAlive === false);
+	});
+
+	toterminate.forEach( (client) => {			     
+	    console.log( `terminating client ${client.ognChannel} peer ${client.ognPeer}` );
+	    client.terminate();
+	});;
+
         // Send to each client
         channel.clients.forEach( (client) => {
             if (client.readyState === WebSocket.OPEN) {
                 client.send( keepAliveMsg );
             }
-            // And do ping/pong to make sure it's up
-            if (client.isAlive === false) return client.terminate();
             client.isAlive = false;
             client.ping(function(){});
         });
-        return;
 
 
         // Fetch the scores for latest date
@@ -468,6 +480,11 @@ function processPacket( packet ) {
     let channel = channels[glider.channel];
     //    console.log( `${flarmId}: ${glider.compno} - ${glider.channel}` );
 
+    if( ! channel ) {
+	console.log( `don't know ${glider.compno}/${flarmId}`);
+	return;
+    }
+
     // how many gliders are we tracking for this channel
     if( !'activeGliders' in channel ) {
         channel.activeGliders = {};
@@ -494,7 +511,7 @@ function processPacket( packet ) {
     // Enrich with elevation and send to everybody, this is async
     withElevation( packet.latitude, packet.longitude,
                    async (agl) => {
-                       message.agl = Math.max(packet.altitude-agl,0);
+                       message.agl = Math.round(Math.max(packet.altitude-agl,0)*10)/10;
                        // console.log( `${glider.compno}: ${packet.latitude},${packet.longitude} - EL: ${agl}, A/C ${packet.altitude} ... ${packet.altitude-agl}` );
 
                        // If the packet isn't delayed then we should send it out over our websocket
@@ -513,7 +530,7 @@ function processPacket( packet ) {
                        }
 
                        // Pop into the database
-                       mysql.query( escape`INSERT INTO trackpoints (class,datecode,compno,lat,lng,altitude,agl,t)
+                       mysql.query( escape`INSERT IGNORE INTO trackpoints (class,datecode,compno,lat,lng,altitude,agl,t)
                                                   VALUES ( ${glider.className}, ${channel.datecode}, ${glider.compno},
                                                            ${packet.latitude}, ${packet.longitude}, ${packet.altitude}, ${agl}, ${packet.timestamp} )` );
 
