@@ -162,10 +162,15 @@ export default async function scoreTask( req, res ) {
     // Also record min and max alititude (metres)
     _foreach( points, (ppoints,compno) => {
         _foreach( ppoints, (p) => {
-            p.ll = new LatLong( p.lat, p.lng );
-            p.geoJSON = point([p.lng,p.lat]);
-            trackers[compno].min = Math.min(trackers[compno].min,p.a);
-            trackers[compno].max = Math.max(trackers[compno].max,p.a);
+	    if( ! trackers[compno] ) {
+		console.log( compno + "missing" );
+	    }
+	    else {
+		p.ll = new LatLong( p.lat, p.lng );
+		p.geoJSON = point([p.lng,p.lat]);
+		trackers[compno].min = Math.min(trackers[compno].min,p.a);
+		trackers[compno].max = Math.max(trackers[compno].max,p.a);
+	    }
         })
     });
 
@@ -205,7 +210,7 @@ export default async function scoreTask( req, res ) {
     // Update the geoJSON with the scored trackline so we can easily display
     // what the pilot has been scored for
     _foreach( trackers, (pilot) => {
-        if( pilot.scoredpoints && pilot.scoredpoints.length>1) pilot.scoredGeoJSON = lineString(pilot.scoredpoints,{})
+        if( pilot && pilot.scoredpoints && pilot.scoredpoints.length>1) pilot.scoredGeoJSON = lineString(pilot.scoredpoints,{})
     } );
 
     // Update the vario
