@@ -158,28 +158,35 @@ export default async function scoreTask( req, res ) {
         _foreach( pilots, (undefined,compno) => { state[compno] = {}} );
     }
 
-    // Generate LatLong and geoJSON objects for each point for each pilot
-    // Also record min and max alititude (metres)
-    _foreach( points, (ppoints,compno) => {
-        _foreach( ppoints, (p) => {
-	    if( ! trackers[compno] ) {
-		console.log( compno + "missing" );
-	    }
-	    else {
-		p.ll = new LatLong( p.lat, p.lng );
-		p.geoJSON = point([p.lng,p.lat]);
-		trackers[compno].min = Math.min(trackers[compno].min,p.a);
-		trackers[compno].max = Math.max(trackers[compno].max,p.a);
-	    }
-        })
-    });
-
     // Merge what we have on the pilot result from the database into the
     // tracker object.  This makes sure we know what scoring has reported
     // so when the pilot is scored we can display the actual scores on the screen
     _foreach( pilots, (pilot,compno) => {
         trackers[compno] = mergeDB(pilot[0],trackers[compno]);
         trackers[compno].taskduration = task.task.durationsecs;
+    });
+
+    // Generate LatLong and geoJSON objects for each point for each pilot
+    // Also record min and max alititude (metres)
+    _foreach( points, (ppoints,compno) => {
+	if( ! trackers[compno] ) {
+	    console.log( compno + "missing" );
+	    return;
+	}
+	
+        _foreach( ppoints, (p) => {
+	    p.ll = new LatLong( p.lat, p.lng );
+	    p.geoJSON = point([p.lng,p.lat]);
+	    trackers[compno].min = Math.min(trackers[compno].min,p.a);
+	    trackers[compno].max = Math.max(trackers[compno].max,p.a);
+        })
+
+	// Enrich with the height information
+	if( ppoints.length > 0 ) {
+	    trackers[compno].altitude = ppoints[0].a;
+	    trackers[compno].agl = ppoints[0].g;
+	    trackers[compno].at = ppoints[0].t;
+	}
     });
 
     // Next step for all types of task is to confirm we have a valid start
