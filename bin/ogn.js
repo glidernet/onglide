@@ -510,8 +510,8 @@ function processPacket( packet ) {
 
     // Enrich with elevation and send to everybody, this is async
     withElevation( packet.latitude, packet.longitude,
-                   async (agl) => {
-                       message.agl = Math.round(Math.max(packet.altitude-agl,0)*10)/10;
+                   async (gl) => {
+                       message.agl = Math.round(Math.max(packet.altitude-gl,0)*10)/10;
                        // console.log( `${glider.compno}: ${packet.latitude},${packet.longitude} - EL: ${agl}, A/C ${packet.altitude} ... ${packet.altitude-agl}` );
 
                        // If the packet isn't delayed then we should send it out over our websocket
@@ -532,7 +532,7 @@ function processPacket( packet ) {
                        // Pop into the database
                        mysql.query( escape`INSERT IGNORE INTO trackpoints (class,datecode,compno,lat,lng,altitude,agl,t)
                                                   VALUES ( ${glider.className}, ${channel.datecode}, ${glider.compno},
-                                                           ${packet.latitude}, ${packet.longitude}, ${packet.altitude}, ${agl}, ${packet.timestamp} )` );
+                                                           ${packet.latitude}, ${packet.longitude}, ${packet.altitude}, ${message.agl}, ${packet.timestamp} )` );
 
                    });
 
