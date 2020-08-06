@@ -474,9 +474,11 @@ function processPacket( packet ) {
     } else {
         glider.lastMoved = packet.timestamp;
     }
-    glider.lastPoint = jPoint;
-    glider.lastTime = packet.timestamp;
-    glider.lastAlt = packet.altitude;
+    if( ! islate ) {
+        glider.lastPoint = jPoint;
+        glider.lastAlt = packet.altitude;
+        glider.lastTime = packet.timestamp;
+    }
 
     // Where are we broadcasting this data
     let channel = channels[glider.channel];
