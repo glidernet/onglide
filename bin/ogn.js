@@ -143,6 +143,7 @@ async function main() {
 
         ws.isAlive = true;
         ws.on('pong', () => { ws.isAlive = true });
+        ws.on('close', () => { ws.isAlive = false; console.log( `close received from ${ws.ognPeer} ${ws.ognChannel}`); });
     });
 
     /*    wss.on('upgrade', function upgrade(request, socket, head) {
@@ -324,6 +325,17 @@ async function sendScores() {
     // For each channel (aka class)
     Object.values(channels).forEach( (channel) => {
 
+        // Remove any that are still marked as not alive
+        const toterminate = _remove( channel.clients, (client) => {
+            return (client.isAlive === false);
+        });
+
+        toterminate.forEach( (client) => {
+            console.log( `terminating client ${client.ognChannel} peer ${client.ognPeer}` );
+            client.terminate();
+        });;
+
+        // If we have nothing then do nothing...
         if( ! channel.clients.length ) {
             console.log( `not scoring ${channel.className} as no clients subscribed` );
             //            return;
@@ -339,17 +351,7 @@ async function sendScores() {
         };
         const keepAliveMsg = JSON.stringify( keepAlive );
 
-	// Remove any that are still marked as not alive
-	const toterminate = _remove( channel.clients, (client) => {
-            return (client.isAlive === false);
-	});
-
-	toterminate.forEach( (client) => {			     
-	    console.log( `terminating client ${client.ognChannel} peer ${client.ognPeer}` );
-	    client.terminate();
-	});;
-
-        // Send to each client
+        // Send to each client and if they don't respond they will be cleaned up next time around
         channel.clients.forEach( (client) => {
             if (client.readyState === WebSocket.OPEN) {
                 client.send( keepAliveMsg );
