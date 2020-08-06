@@ -67,7 +67,7 @@ function Menu( props ) {
                 </Nav>
                 <Navbar.Collapse id="responsive-navbar-nav">
                     <Navbar.Brand href={comp.competition.mainwebsite}>
-                        <img width="15px" alt="-"/>
+                        <Nbsp/>
                         {comp.competition.name}<span style={{fontSize: '70%'}}>{comp.competition.start} to {comp.competition.end}</span>
                     </Navbar.Brand>
                 </Navbar.Collapse>
