@@ -658,7 +658,7 @@ function checkUnknown( flarmId, packet ) {
 async function startStatusServer() {
     // status display, very simple
     function displayGlider(v) {
-        return v.lastTime?`<tr><td>${v.compno}</td><td>${v.className}</td><td>${timeToText(v?.lastTime)}</td><td>${v?.lastAlt}</td><td>${v?.lastvario[3]}</td></tr>`:'';
+        return v.lastTime?`<tr><td>${v.compno}</td><td>${v.className}</td><td>${timeToText(v?.lastTime)}</td><td>${v?.lastAlt}</td><td>${v.lastvario?.[3]}</td></tr>`:'';
     }
     function displayUnknownTrackers(v) {
         return `<tr><td>${v.flarmid}</td><td>${v?.message??''}</td><td>${v?.matched??''}</td><td>${[timeToText(v?.firstTime),timeToText(v?.lastTime)].join(' - ')}</td>`;
