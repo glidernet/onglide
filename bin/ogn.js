@@ -138,7 +138,7 @@ async function main() {
         }
         else {
             console.log( 'Unknown channel ' + channel );
-            ws.disconnect();
+            ws.isAlive = false;
         }
 
         ws.isAlive = true;
