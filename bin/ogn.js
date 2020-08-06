@@ -129,8 +129,8 @@ async function main() {
         // Strip leading /
         const channel = req.url.substring(1,req.url.length);
 
-	ws.ognChannel = channel;
-	ws.ognPeer = req.headers['x-forwarded-for'];
+        ws.ognChannel = channel;
+        ws.ognPeer = req.headers['x-forwarded-for'];
         console.log( `connection received for ${channel} from ${ws.ognPeer}` );
 
         if( channel in channels ) {
@@ -138,7 +138,7 @@ async function main() {
         }
         else {
             console.log( 'Unknown channel ' + channel );
-	    ws.disconnect();
+            ws.disconnect();
         }
 
         ws.isAlive = true;
@@ -481,8 +481,8 @@ function processPacket( packet ) {
     //    console.log( `${flarmId}: ${glider.compno} - ${glider.channel}` );
 
     if( ! channel ) {
-	console.log( `don't know ${glider.compno}/${flarmId}`);
-	return;
+        console.log( `don't know ${glider.compno}/${flarmId}`);
+        return;
     }
 
     // how many gliders are we tracking for this channel
