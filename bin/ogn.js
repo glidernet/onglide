@@ -39,6 +39,7 @@ const _keyby = require('lodash.keyby');
 const _foreach = require('lodash.foreach');
 const _sortby = require('lodash.sortby');
 const _remove = require('lodash.remove');
+const _groupby = require('lodash.groupby');
 
 // Handle fetching elevation and confirming size of the cache for tiles
 const { getElevationOffset, getCacheSize } = require('../lib/getelevationoffset.js');
@@ -144,6 +145,9 @@ async function main() {
         ws.isAlive = true;
         ws.on('pong', () => { ws.isAlive = true });
         ws.on('close', () => { ws.isAlive = false; console.log( `close received from ${ws.ognPeer} ${ws.ognChannel}`); });
+
+        // Send vario etc for all gliders we are tracking
+        sendCurrentState(ws);
     });
 
     /*    wss.on('upgrade', function upgrade(request, socket, head) {
@@ -258,24 +262,43 @@ async function updateTrackers() {
           delete channels[c];
           }); */
 
+
+    // How the trackers are indexed into the array, it must include className as compno may not be unique
+    function mergedName(t) { return t.className+'_'+t.compno; }
+
     // Now get the trackers
     const cTrackers = await mysql.query( 'select p.compno, p.greg, trackerid, UPPER(concat(t.class,c.datecode)) channel, 0 duplicate, ' +
                                          ' p.class className ' +
                                          ' from pilots p left outer join tracker t on p.class=t.class and p.compno=t.compno left outer join compstatus c on c.class=p.class ' +
                                          '   where p.class = c.class' );
 
-    function mergedName(t) { return t.className+'_'+t.compno; }
+    // Get the most recent track point and form a hash of the last point keyed by the same key
+    // This could be optimized to only occur the first time it's run
+    const lastPointR = await mysql.query(escape `SELECT tp.class className, tp.compno, lat, lng, t, altitude a, agl g FROM trackpoints tp
+                                                  JOIN (select compno, ti.class, max(t) mt FROM trackpoints ti JOIN compstatus cs ON cs.class = ti.class WHERE ti.datecode=cs.datecode GROUP by ti.class, ti.compno) ti
+                                                    ON tp.t = ti.mt AND tp.compno = ti.compno AND tp.class = ti.class`);
+    const lastPoint = _groupby( lastPointR, (x)=> mergedName(x) );
 
     // Now go through all the gliders and make sure we have linked them
     cTrackers.forEach( (t) => {
 
         // Spread, this will define/overwrite as needed
-        gliders[mergedName(t)] = { ...gliders[mergedName(t)], ...t, greg: t?.greg?.replace(/[^A-Z0-9]/i,'') };
+        const gliderKey = mergedName(t);
+        gliders[gliderKey] = { ...gliders[mergedName(t)], ...t, greg: t?.greg?.replace(/[^A-Z0-9]/i,'') };
 
         // If we have a tracker for it then we need to link that as well
         if( t.trackerid && t.trackerid != 'unknown' ) {
             trackers[ t.trackerid ] = gliders[ mergedName(t) ];
         }
+
+        // If we have a point but there wasn't one on the glider then we will store this away
+        var lp = lastPoint[gliderKey];
+        if( lp && (gliders[gliderKey].lastTime??0) < lp[0].t ) {
+            gliders[gliderKey] = { ...gliders[gliderKey],
+                                   altitude: lp[0].a,
+                                   agl: lp[0].agl,
+                                   lastTime: lp[0].t };
+        };
     });
 
     // Filter out anything that doesn't match the input set, doesn't matter if it matches
@@ -315,6 +338,75 @@ async function updateDDB() {
         });
 }
 
+//
+// New connection, send it a packet for each glider we are tracking
+async function sendCurrentState(client) {
+    if (client.readyState !== WebSocket.OPEN) {
+        console.log("unable to sendCurrentState not yet open" );
+        return;
+    }
+
+    // If there has already been a keepalive then we will resend it to the client
+    const lastKeepAliveMsg = channels[client.ognChannel].lastKeepAliveMsg;
+    if( lastKeepAliveMsg ) {
+        client.send( lastKeepAliveMsg );
+    }
+
+    // And we will send them info on all the gliders we have a message for
+    const toSend = _filter( gliders, {'class': client.class} );
+    _foreach( toSend, (glider) => {
+        if( 'lastMsg' in glider ) {
+            client.send( glider.lastMsg );
+        }
+    });
+}
+
+//
+// New connection, send it a packet for each glider we are tracking
+async function sendCurrentState(client) {
+    if (client.readyState !== WebSocket.OPEN) {
+        console.log("unable to sendCurrentState not yet open" );
+        return;
+    }
+
+    // If there has already been a keepalive then we will resend it to the client
+    const lastKeepAliveMsg = channels[client.ognChannel].lastKeepAliveMsg;
+    if( lastKeepAliveMsg ) {
+        client.send( lastKeepAliveMsg );
+    }
+
+    // And we will send them info on all the gliders we have a message for
+    const toSend = _filter( gliders, {'class': client.class} );
+    _foreach( toSend, (glider) => {
+        if( 'lastMsg' in glider ) {
+            client.send( glider.lastMsg );
+        }
+    });
+}
+
+//
+// New connection, send it a packet for each glider we are tracking
+async function sendCurrentState(client) {
+    if (client.readyState !== WebSocket.OPEN) {
+        console.log("unable to sendCurrentState not yet open" );
+        return;
+    }
+
+    // If there has already been a keepalive then we will resend it to the client
+    const lastKeepAliveMsg = channels[client.ognChannel].lastKeepAliveMsg;
+    if( lastKeepAliveMsg ) {
+        client.send( lastKeepAliveMsg );
+    }
+
+    // And we will send them info on all the gliders we have a message for
+    const toSend = _filter( gliders, {'class': client.class} );
+    _foreach( toSend, (glider) => {
+        if( 'lastMsg' in glider ) {
+            client.send( glider.lastMsg );
+        }
+    });
+}
+
 // We need to fetch and repeat the scores for each class, enriched with vario information
 // This means SWR doesn't need to timed reload which will help with how well the site redisplays
 // information
@@ -350,6 +442,7 @@ async function sendScores() {
             "airborne":channel.activeGliders.length||0,
         };
         const keepAliveMsg = JSON.stringify( keepAlive );
+        channel.lastKeepAliveMsg = keepAliveMsg;
 
         // Send to each client and if they don't respond they will be cleaned up next time around
         channel.clients.forEach( (client) => {
@@ -407,7 +500,7 @@ async function sendScores() {
                     }
 
                     // If it is recent then we will also include vario
-                    if( (now - glider.lastTime) < 60 ) {
+                    if( (now - glider.lastTime) < 60 && 'lastvario' in glider ) {
                         [ p.lossXsecond,
                           p.gainXsecond,
                           p.average,
@@ -524,13 +617,15 @@ function processPacket( packet ) {
                            // Prepare to send
                            const jsonMsg = JSON.stringify( message );
 
-
                            // Send to each client
                            channel.clients.forEach( (client) => {
                                if (client.readyState === WebSocket.OPEN) {
                                    client.send( jsonMsg );
                                }
                            });
+
+                           // Save for reconnects
+                           glider.lastMsg = jsonMsg;
                        }
 
                        // Pop into the database
