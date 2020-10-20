@@ -169,24 +169,24 @@ export default async function scoreTask( req, res ) {
     // Generate LatLong and geoJSON objects for each point for each pilot
     // Also record min and max alititude (metres)
     _foreach( points, (ppoints,compno) => {
-	if( ! trackers[compno] ) {
-	    console.log( compno + "missing" );
-	    return;
-	}
-	
+        if( ! trackers[compno] ) {
+            console.log( compno + "missing" );
+            return;
+        }
+
         _foreach( ppoints, (p) => {
-	    p.ll = new LatLong( p.lat, p.lng );
-	    p.geoJSON = point([p.lng,p.lat]);
-	    trackers[compno].min = Math.min(trackers[compno].min,p.a);
-	    trackers[compno].max = Math.max(trackers[compno].max,p.a);
+            p.ll = new LatLong( p.lat, p.lng );
+            p.geoJSON = point([p.lng,p.lat]);
+            trackers[compno].min = Math.min(trackers[compno].min,p.a);
+            trackers[compno].max = Math.max(trackers[compno].max,p.a);
         })
 
-	// Enrich with the height information
-	if( ppoints.length > 0 ) {
-	    trackers[compno].altitude = ppoints[0].a;
-	    trackers[compno].agl = ppoints[0].g;
-	    trackers[compno].at = ppoints[0].t;
-	}
+        // Enrich with the height information
+        if( ppoints.length > 0 ) {
+            trackers[compno].altitude = ppoints[0].a;
+            trackers[compno].agl = ppoints[0].g;
+            trackers[compno].at = ppoints[0].t;
+        }
     });
 
     // Next step for all types of task is to confirm we have a valid start
@@ -217,8 +217,14 @@ export default async function scoreTask( req, res ) {
     // Update the geoJSON with the scored trackline so we can easily display
     // what the pilot has been scored for
     _foreach( trackers, (pilot) => {
-        if( pilot && pilot.scoredpoints && pilot.scoredpoints.length>1) pilot.scoredGeoJSON = lineString(pilot.scoredpoints,{})
-    } );
+        if( pilot ) {
+            if( pilot.scoredpoints && pilot.scoredpoints.length>1 ) {
+                pilot.scoredGeoJSON = lineString(pilot.scoredpoints,{})
+            }
+            else {
+                delete pilot.scoredpoints;
+            }
+        }});
 
     // Update the vario
     //    _map( points, (points,compno) => calculateVario( trackers[compno], state[compno], points )  );
