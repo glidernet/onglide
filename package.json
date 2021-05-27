@@ -21,7 +21,7 @@
         "js-aprs-fap": "^1.0.0",
         "js-aprs-is": "^1.0.1",
         "keyv": "^4.0.1",
-        "lodash": "^4.17.19",
+        "lodash": "^4.17.21",
         "lodash.clone": "^4.5.0",
         "lodash.clonedeep": "^4.5.0",
         "lodash.filter": "^4.6.0",
