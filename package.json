@@ -48,6 +48,6 @@
         "serverless-mysql": "^1.5.4",
         "sql-template-strings": "^2.2.2",
         "swr": "^0.2.3",
-        "ws": "^7.3.1"
+        "ws": "^7.4.6"
     }
 }
