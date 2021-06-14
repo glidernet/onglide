@@ -211,7 +211,7 @@ async function update_pilots(class_url,classid,classname,keys) {
     });
 
     // remove any old pilots as they aren't needed, they may not go immediately but it will be soon enough
-    t.query( escape`DELETE FROM PILOTS WHERE class=${classid} AND registereddt < DATE_SUB(NOW(), INTERVAL 15 MINUTE)`)
+    t.query( escape`DELETE FROM pilots WHERE class=${classid} AND registereddt < DATE_SUB(NOW(), INTERVAL 15 MINUTE)`)
 
 
     // Trackers needs a row for each pilot so fill any missing, perhaps we should
@@ -220,7 +220,7 @@ async function update_pilots(class_url,classid,classname,keys) {
     //  .query( 'DELETE FROM tracker where concat(class,compno) not in (select concat(class,compno) from pilots)' );
 
     // And update the pilots picture to the latest one in the image table - this should be set by download_picture
-    //   .query( 'UPDATE PILOTS SET image=(SELECT filename FROM images WHERE keyid=compno AND width IS NOT NULL ORDER BY added DESC LIMIT 1)' );
+    //   .query( 'UPDATE pilots SET image=(SELECT filename FROM images WHERE keyid=compno AND width IS NOT NULL ORDER BY added DESC LIMIT 1)' );
 
         .rollback( e => { console.log("rollback") } )
         .commit();
@@ -632,23 +632,28 @@ async function update_contest(contest,keys) {
         await mysql.query( escape`UPDATE competition SET lt = ${lat}, lg = ${lng},
                                                       sitename = ${location.name}`);
     }
-
+	console.log(contest.time_zone);
     const dbtz = (await mysql.query( escape`
            SELECT tz, LEFT((TIMEDIFF(CONVERT_TZ(NOW(),'+00:00',${contest.time_zone}),NOW())),6) newtz
              FROM competition`))[0];
 
-    if( dbtz ) {
-        // Extract timezone
-        // probably wrong for tz 00:00, think it's in the ocean
-        let newtz = dbtz.newtz.replace(/:$/,'')
-        if( !newtz.match(/^[+-]/)) {
-            newtz = "+"+newtz;
-        }
-        if( newtz != dbtz.tz ) {
-            console.log( "current tz: "+dbtz.tz+" changing to "+newtz);
-            console.log( await mysql.query( escape`UPDATE competition set tz=${newtz}, tzoffset=time_to_sec(TIMEDIFF(CONVERT_TZ(NOW(),'+00:00',${newtz}),NOW())) `) );
-        }
-    }
+	if( dbtz.newtz)	{
+		if( dbtz ) {
+			// Extract timezone
+			// probably wrong for tz 00:00, think it's in the ocean
+			let newtz = dbtz.newtz.toString().replace(/:$/,'')
+			if( !newtz.match(/^[+-]/)) {
+				newtz = "+"+newtz;
+			}
+			if( newtz != dbtz.tz ) {
+				console.log( "current tz: "+dbtz.tz+" changing to "+newtz);
+				console.log( await mysql.query( escape`UPDATE competition set tz=${newtz}, tzoffset=time_to_sec(TIMEDIFF(CONVERT_TZ(NOW(),'+00:00',${newtz}),NOW())) `) );
+			}
+		}
+	}
+	else {
+		console.log( "Missing Timezone table on Database, Please Correct" );
+	}
 
     // And fix the URL to whatever is configured in soaringspot
     let [url] = (''+contest._links['http://api.soaringspot.com/rel/www'].href).match(/(http[^']*)/);
