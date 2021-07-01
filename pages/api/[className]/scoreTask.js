@@ -10,6 +10,7 @@ import { useRouter } from 'next/router'
 
 import LatLong from '../../../lib/LatLong';
 import { point,lineString } from '@turf/helpers';
+import { useKVs } from '../../../lib/kv.js';
 
 import _groupby  from 'lodash.groupby'
 import _map  from 'lodash.map'
@@ -40,7 +41,7 @@ const fetcher = url => fetch(url).then(res => res.json());
 //       *state* is internal calculation and wil depend on the type of task
 //         eg for AAT it stores the djikstra working set
 //       *tasks* is the task data
-let kvs = [];
+let kvs = useKVs();
 
 //
 // Function to score any type of task - checks the task type field in the database
