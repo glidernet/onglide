@@ -169,8 +169,9 @@ async function main() {
         connection.valid = true;
         if(data.charAt(0) != '#' && !data.startsWith('user')) {
             const packet = parser.parseaprs(data);
+            //console.log(packet);
             if( "latitude" in packet && "longitude" in packet &&
-                "comment" in packet && packet.comment.substr(0,2) == 'id' ) {
+                "comment" in packet && packet.comment?.substr(0,2) == 'id' ) {
                 processPacket( packet );
             }
         } else {
@@ -294,6 +295,7 @@ async function updateTrackers() {
         // If we have a point but there wasn't one on the glider then we will store this away
         var lp = lastPoint[gliderKey];
         if( lp && (gliders[gliderKey].lastTime??0) < lp[0].t ) {
+            console.log(`using db altitudes for ${gliderKey}, ${gliders[gliderKey].lastTime??0} < ${lp[0].t}`);
             gliders[gliderKey] = { ...gliders[gliderKey],
                                    altitude: lp[0].a,
                                    agl: lp[0].agl,
