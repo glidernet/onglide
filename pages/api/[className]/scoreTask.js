@@ -186,7 +186,7 @@ export default async function scoreTask( req, res ) {
         if( ppoints.length > 0 ) {
             trackers[compno].altitude = ppoints[0].a;
             trackers[compno].agl = ppoints[0].g;
-            trackers[compno].at = ppoints[0].t;
+            trackers[compno].lastUpdated = ppoints[0].t;
         }
     });
 
