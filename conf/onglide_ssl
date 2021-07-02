@@ -69,7 +69,8 @@ SSLSessionCacheTimeout  300
 
 # Proxy to Node/Next.js
    ProxyRequests On
-   ProxyPass / http://localhost:3000/
+   ProxyPass /wsstatus http://localhost:8081/  # websocket status server
+   ProxyPass / http://localhost:3000/          # frontend
    ProxyPassReverse / http://localhost:3000/
 
 </VirtualHost>

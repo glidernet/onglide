@@ -232,8 +232,8 @@ async function update_pilots(class_url,classid,classname,keys) {
 async function process_class_tasks (class_url,classid,classname,keys) {
 
     const tasks = await sendSoaringSpotRequest( class_url+'/tasks', keys );
-    if( ! tasks ) {
-        console.log( `${classname}: no tasks` );
+    if( 'code' in tasks || ! ('_embedded' in tasks)) {
+        console.log( `${classname}: unable to fetch tasks ${tasks.message}` );
         return 0;
     }
     let dates = [];
@@ -255,8 +255,8 @@ async function process_class_tasks (class_url,classid,classname,keys) {
 async function process_class_results (class_url,classid,classname,keys) {
 
     const results = await sendSoaringSpotRequest( class_url+'/results', keys );
-    if( ! results ) {
-        console.log( `${classname}: no results` );
+    if( 'code' in results || ! ('_embedded' in results)) {
+        console.log( `${classname}: no results: ${results.message}` );
         return 0;
     }
 
@@ -609,8 +609,8 @@ async function update_contest(contest,keys) {
 
 
     // Add a row if we need to
-    const count = (await mysql.query( 'SELECT COUNT(*) FROM competition' ));
-    if( ! count || !count[0] ) {
+    const count = (await mysql.query( 'SELECT COUNT(*) cnt FROM competition' ));
+    if( ! count || !count[0] || ! count[0].cnt ) {
         console.log( "Empty competition, pre-populating" );
         mysql.query( 'INSERT IGNORE INTO COMPETITION ( tz ) VALUES ( "+00:00" )' );
     }

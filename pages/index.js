@@ -1,6 +1,7 @@
 import next from 'next'
 import { useRouter } from 'next/router'
 import dynamic from 'next/dynamic'
+import Head from 'next/head'
 
 // What do we need to render the bootstrap part of the page
 import Container from 'react-bootstrap/Container';
@@ -66,7 +67,7 @@ function Menu( props ) {
                 </Nav>
                 <Navbar.Collapse id="responsive-navbar-nav">
                     <Navbar.Brand href={comp.competition.mainwebsite}>
-                        <img width="15px"/>
+                        <Nbsp/>
                         {comp.competition.name}<span style={{fontSize: '70%'}}>{comp.competition.start} to {comp.competition.end}</span>
                     </Navbar.Brand>
                 </Navbar.Collapse>
@@ -138,7 +139,10 @@ function CombinePage( props ) {
 
     return (
         <>
-            <IncludeJavascript/>
+            <Head>
+                <title>{comp.competition.name} - {className}</title>
+                <IncludeJavascript/>
+            </Head>
             <Menu comp={comp} vc={className} setSelectedPilot={setSelectedCompno}/>
             <Container fluid>
                 <Row>

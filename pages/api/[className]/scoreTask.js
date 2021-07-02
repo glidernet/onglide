@@ -10,6 +10,7 @@ import { useRouter } from 'next/router'
 
 import LatLong from '../../../lib/LatLong';
 import { point,lineString } from '@turf/helpers';
+import { useKVs } from '../../../lib/kv.js';
 
 import _groupby  from 'lodash.groupby'
 import _map  from 'lodash.map'
@@ -40,7 +41,7 @@ const fetcher = url => fetch(url).then(res => res.json());
 //       *state* is internal calculation and wil depend on the type of task
 //         eg for AAT it stores the djikstra working set
 //       *tasks* is the task data
-let kvs = [];
+let kvs = useKVs();
 
 //
 // Function to score any type of task - checks the task type field in the database
@@ -158,23 +159,35 @@ export default async function scoreTask( req, res ) {
         _foreach( pilots, (undefined,compno) => { state[compno] = {}} );
     }
 
-    // Generate LatLong and geoJSON objects for each point for each pilot
-    // Also record min and max alititude (metres)
-    _foreach( points, (ppoints,compno) => {
-        _foreach( ppoints, (p) => {
-            p.ll = new LatLong( p.lat, p.lng );
-            p.geoJSON = point([p.lng,p.lat]);
-            trackers[compno].min = Math.min(trackers[compno].min,p.a);
-            trackers[compno].max = Math.max(trackers[compno].max,p.a);
-        })
-    });
-
     // Merge what we have on the pilot result from the database into the
     // tracker object.  This makes sure we know what scoring has reported
     // so when the pilot is scored we can display the actual scores on the screen
     _foreach( pilots, (pilot,compno) => {
         trackers[compno] = mergeDB(pilot[0],trackers[compno]);
         trackers[compno].taskduration = task.task.durationsecs;
+    });
+
+    // Generate LatLong and geoJSON objects for each point for each pilot
+    // Also record min and max alititude (metres)
+    _foreach( points, (ppoints,compno) => {
+        if( ! trackers[compno] ) {
+            console.log( compno + "missing" );
+            return;
+        }
+
+        _foreach( ppoints, (p) => {
+            p.ll = new LatLong( p.lat, p.lng );
+            p.geoJSON = point([p.lng,p.lat]);
+            trackers[compno].min = Math.min(trackers[compno].min,p.a);
+            trackers[compno].max = Math.max(trackers[compno].max,p.a);
+        })
+
+        // Enrich with the height information
+        if( ppoints.length > 0 ) {
+            trackers[compno].altitude = ppoints[0].a;
+            trackers[compno].agl = ppoints[0].g;
+            trackers[compno].lastUpdated = ppoints[0].t;
+        }
     });
 
     // Next step for all types of task is to confirm we have a valid start
@@ -205,8 +218,14 @@ export default async function scoreTask( req, res ) {
     // Update the geoJSON with the scored trackline so we can easily display
     // what the pilot has been scored for
     _foreach( trackers, (pilot) => {
-        if( pilot.scoredpoints && pilot.scoredpoints.length>1) pilot.scoredGeoJSON = lineString(pilot.scoredpoints,{})
-    } );
+        if( pilot ) {
+            if( pilot.scoredpoints && pilot.scoredpoints.length>1 ) {
+                pilot.scoredGeoJSON = lineString(pilot.scoredpoints,{})
+            }
+            else {
+                delete pilot.scoredpoints;
+            }
+        }});
 
     // Update the vario
     //    _map( points, (points,compno) => calculateVario( trackers[compno], state[compno], points )  );

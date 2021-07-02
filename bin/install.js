@@ -102,8 +102,13 @@ async function main() {
 
 
     // Get the soaring spot keys, we need this to prompt for the keys
-    let sskeys = (await mysql.query( 'select * from soaringspotkey' ))[0];
+    let sskeyresult = (await mysql.query( 'select client_id, secret, actuals from soaringspotkey' ));
+    let sskey = sskeyresult[0];
+    if( sskey === undefined ) {
+	sskey = { client_id: "", secret: "", actuals: 1 };
+    }
     console.log( "Soaring Spot config:" );
+
 
     const ssquestions = [
         {
@@ -111,13 +116,13 @@ async function main() {
             type: 'text',
             name: 'ssclient',
             message: 'API Client Key',
-            initial: sskeys.client_id,
+            initial: sskey.client_id,
         },
         {
             type: 'text',
             name: 'sssecret',
             message: 'API Secret',
-            initial: sskeys.secret
+            initial: sskey.secret
         },
         {
             type: 'select',
@@ -128,7 +133,7 @@ async function main() {
                 { title: 'Handicapped', value: '0' },
                 { title: 'Actuals', value: '1' },
             ],
-            initial: (sskeys.actuals+1),
+            initial: (sskey.actuals+1),
         }
     ];
 
