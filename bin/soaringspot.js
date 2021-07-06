@@ -310,6 +310,10 @@ async function process_day_task (day,classid,classname,keys) {
 
     // If there are no turnpoints then it isn't a valid task
     const turnpoints = await sendSoaringSpotRequest( task_details._links['http://api.soaringspot.com/rel/points'].href, keys );
+    if( !turnpoints || !turnpoints._embedded || ! turnpoints._embedded['http://api.soaringspot.com/rel/points'] || turnpoints._embedded['http://api.soaringspot.com/rel/points'].length < 2 ) {
+        console.log( `${classid} - ${date}: no turnpoints defined` );
+        return;
+    }
 
     // So we don't rebuild tasks if they haven't changed
     const hash = crypto.createHash('sha256').update(JSON.stringify(turnpoints)).update(JSON.stringify(task_details)).digest('base64');
@@ -350,8 +354,9 @@ async function process_day_task (day,classid,classname,keys) {
                 console.log( `${classid} - ${date}: unable to insert task!` );
                 return null;
             }
-            if( !turnpoints || !turnpoints._embedded || ! turnpoints._embedded['http://api.soaringspot.com/rel/points'] ) {
+            if( !turnpoints || !turnpoints._embedded || ! turnpoints._embedded['http://api.soaringspot.com/rel/points'] || turnpoints._embedded['http://api.soaringspot.com/rel/points'].length < 2 ) {
                 console.log( `${classid} - ${date}: no turnpoints for task` );
+                throw "oops";
                 return null;
             }
 
