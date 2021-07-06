@@ -211,7 +211,7 @@ async function update_pilots(class_url,classid,classname,keys) {
     });
 
     // remove any old pilots as they aren't needed, they may not go immediately but it will be soon enough
-    t.query( escape`DELETE FROM PILOTS WHERE class=${classid} AND registereddt < DATE_SUB(NOW(), INTERVAL 15 MINUTE)`)
+    t.query( escape`DELETE FROM pilots WHERE class=${classid} AND registereddt < DATE_SUB(NOW(), INTERVAL 15 MINUTE)`)
 
 
     // Trackers needs a row for each pilot so fill any missing, perhaps we should
@@ -612,7 +612,7 @@ async function update_contest(contest,keys) {
     const count = (await mysql.query( 'SELECT COUNT(*) cnt FROM competition' ));
     if( ! count || !count[0] || ! count[0].cnt ) {
         console.log( "Empty competition, pre-populating" );
-        mysql.query( 'INSERT IGNORE INTO COMPETITION ( tz ) VALUES ( "+00:00" )' );
+        mysql.query( 'INSERT IGNORE INTO competition ( tz ) VALUES ( "+00:00" )' );
     }
 
     //
