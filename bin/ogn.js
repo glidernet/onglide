@@ -397,7 +397,7 @@ async function sendCurrentState(client) {
     }
 
     // If there has already been a keepalive then we will resend it to the client
-    const lastKeepAliveMsg = channels[client.ognChannel].lastKeepAliveMsg;
+    const lastKeepAliveMsg = channels[client.ognChannel]?.lastKeepAliveMsg;
     if( lastKeepAliveMsg ) {
         client.send( lastKeepAliveMsg );
     }
