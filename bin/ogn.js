@@ -17,6 +17,7 @@ const WebSocket = require('ws');
 
 // And status display
 const http = require('http');
+const tx2 = require('tx2');
 
 console.log(ISSocket);
 
@@ -72,6 +73,16 @@ let ddb = {}; // device_id: { ddb object }
 
 // APRS connection
 let connection = {};
+
+// Performance counter
+let metrics = { 
+    terrainCache: tx2.metric( { name: 'terrain cache', value: () => getCacheSize()}),
+    knownGliders: tx2.metric( { name: 'gliders (known,total)', value: () =>  [Object.keys(trackers).length, Object.keys(gliders).length] }),
+    unknownGliders: tx2.metric( { name: 'unknown gliders in area', value: () => Object.keys(unknownTrackers).length }),
+    ognPerSecond: tx2.meter( { name: "ogn msgs/sec", samples: 1, timeframe: 60 }),
+    activeGliders: tx2.metric( { name: 'tracked gliders', value: () => _map(channels,(v)=>Object.keys(v?.activeGliders).length) }),
+    viewers: tx2.metric( { name: 'viewers', value: () => _map(channels,(v)=>v?.clients?.length) }),
+};
 
 // Load the current file & Get the parsed version of the configuration
 const dotenv = require('dotenv').config({ path: '.env.local' })
@@ -540,6 +551,9 @@ async function sendScores() {
 //
 // collect points, emit to competition db every 30 seconds
 function processPacket( packet ) {
+
+    // Count this packet into pm2
+    metrics?.ognPerSecond.mark();
 
     // Flarm ID we use is last 6 characters
     const flarmId = packet.sourceCallsign.slice( packet.sourceCallsign.length - 6 );
