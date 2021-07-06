@@ -637,7 +637,7 @@ async function update_contest(contest,keys) {
            SELECT tz, LEFT((TIMEDIFF(CONVERT_TZ(NOW(),'+00:00',${contest.time_zone}),NOW())),6) newtz
              FROM competition`))[0];
 
-    if( dbtz ) {
+    if( dbtz && dbtz.tz ) {
         // Extract timezone
         // probably wrong for tz 00:00, think it's in the ocean
         let newtz = dbtz.newtz.replace(/:$/,'')
@@ -648,7 +648,10 @@ async function update_contest(contest,keys) {
             console.log( "current tz: "+dbtz.tz+" changing to "+newtz);
             console.log( await mysql.query( escape`UPDATE competition set tz=${newtz}, tzoffset=time_to_sec(TIMEDIFF(CONVERT_TZ(NOW(),'+00:00',${newtz}),NOW())) `) );
         }
-    }
+	}
+	else {
+ 			console.log( "TZ table not installed in mysql Please Correct (https://dev.mysql.com/doc/refman/8.0/en/mysql-tzinfo-to-sql.html)" );
+ 	}
 
     // And fix the URL to whatever is configured in soaringspot
     let [url] = (''+contest._links['http://api.soaringspot.com/rel/www'].href).match(/(http[^']*)/);
