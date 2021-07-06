@@ -703,7 +703,7 @@ function checkUnknown( flarmId, packet ) {
     const agl = Math.max(packet.altitude-(location.altitude??0),0);
 
     // capture launches close to the airfield (vertically and horizontally)
-    if( distanceFromHome < 300.5 && agl < 2300 ) {
+    if( distanceFromHome < 30 && agl < 2300 ) {
 
         // Store in the unknown list for status display
         unknownTrackers[flarmId] = { firstTime: packet.timestamp, ...unknownTrackers[flarmId], lastTime: packet.timestamp, flarmid: flarmId };
