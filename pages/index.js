@@ -148,7 +148,7 @@ function CombinePage( props ) {
                 <Row>
                     <Col sm={7}>
                         <TaskMap vc={className} datecode={selectedClass?selectedClass.datecode:'07C'} selectedPilot={selectedPilot}
-                                 mapRef={mapRef} pilots={pilots}/>
+                                 mapRef={mapRef} pilots={pilots} lat={props.lat} lng={props.lng}/>
                         <OgnFeed vc={className} datecode={selectedClass?selectedClass.datecode:'07C'} selectedPilot={selectedPilot}
                                  pilots={pilots} mutatePilots={mutate} mapRef={mapRef}/>
                     </Col>
@@ -170,10 +170,12 @@ function CombinePage( props ) {
 // Determine the default class
 export async function getStaticProps(context) {
 
+	const location = await db.query( 'SELECT lt, lg FROM competition LIMIT 1' );
     const classes = await db.query('SELECT class FROM classes ORDER BY class');
 
     return {
-        props: { defaultClass: classes && classes.length > 0 ? classes[0].class : '' }, // will be passed to the page component as props
+        props: { lat: location?.[0]?.lt, lng: location?.[0]?.lg,
+				 defaultClass: classes && classes.length > 0 ? classes[0].class : '' }, // will be passed to the page component as props
     }
 }
 
