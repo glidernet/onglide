@@ -175,18 +175,21 @@ export default async function scoreTask( req, res ) {
             return;
         }
 
+		var tracker = trackers[compno];
+
         _foreach( ppoints, (p) => {
             p.ll = new LatLong( p.lat, p.lng );
             p.geoJSON = point([p.lng,p.lat]);
-            trackers[compno].min = Math.min(trackers[compno].min,p.a);
-            trackers[compno].max = Math.max(trackers[compno].max,p.a);
+            tracker.min = Math.min(tracker.min,p.a);
+            tracker.max = Math.max(tracker.max,p.a);
         })
+		console.log( compno, tracker.min, tracker.max );
 
         // Enrich with the height information
         if( ppoints.length > 0 ) {
-            trackers[compno].altitude = ppoints[0].a;
-            trackers[compno].agl = ppoints[0].g;
-            trackers[compno].lastUpdated = ppoints[0].t;
+            tracker.altitude = ppoints[0].a;
+            tracker.agl = ppoints[0].g;
+            tracker.lastUpdated = ppoints[0].t;
         }
     });
 
