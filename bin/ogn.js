@@ -295,14 +295,9 @@ async function updateTrackers() {
 
         // Spread, this will define/overwrite as needed
         const gliderKey = mergedName(t);
-        gliders[gliderKey] = { ...gliders[mergedName(t)], ...t, greg: t?.greg?.replace(/[^A-Z0-9]/i,'') };
+        gliders[gliderKey] = { ...gliders[gliderKey], ...t, greg: t?.greg?.replace(/[^A-Z0-9]/i,'') };
 
-        // If we have a tracker for it then we need to link that as well
-        if( t.trackerid && t.trackerid != 'unknown' ) {
-            trackers[ t.trackerid ] = gliders[ mergedName(t) ];
-        }
-
-        // If we have a point but there wasn't one on the glider then we will store this away
+		// If we have a point but there wasn't one on the glider then we will store this away
         var lp = lastPoint[gliderKey];
         if( lp && (gliders[gliderKey].lastTime??0) < lp[0].t ) {
             console.log(`using db altitudes for ${gliderKey}, ${gliders[gliderKey].lastTime??0} < ${lp[0].t}`);
@@ -311,6 +306,12 @@ async function updateTrackers() {
                                    agl: lp[0].agl,
                                    lastTime: lp[0].t };
         };
+
+        // If we have a tracker for it then we need to link that as well
+        if( t.trackerid && t.trackerid != 'unknown' ) {
+            trackers[ t.trackerid ] = gliders[ gliderKey ];
+        }
+
     });
 
     // Filter out anything that doesn't match the input set, doesn't matter if it matches
@@ -626,7 +627,8 @@ function processPacket( packet ) {
     // Enrich with elevation and send to everybody, this is async
     withElevation( packet.latitude, packet.longitude,
                    async (gl) => {
-                       message.agl = Math.round(Math.max(packet.altitude-gl,0)*10)/10;
+                       message.agl = Math.round(Math.max(packet.altitude-gl,0));
+					   glider.agl = message.agl;
                        // console.log( `${glider.compno}: ${packet.latitude},${packet.longitude} - EL: ${agl}, A/C ${packet.altitude} ... ${packet.altitude-agl}` );
 
                        // If the packet isn't delayed then we should send it out over our websocket
