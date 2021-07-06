@@ -610,7 +610,8 @@ function processPacket( packet ) {
     // Enrich with elevation and send to everybody, this is async
     withElevation( packet.latitude, packet.longitude,
                    async (gl) => {
-                       message.agl = Math.round(Math.max(packet.altitude-gl,0)*10)/10;
+                       message.agl = Math.round(Math.max(packet.altitude-gl,0));
+					   glider.agl = message.agl;
                        // console.log( `${glider.compno}: ${packet.latitude},${packet.longitude} - EL: ${agl}, A/C ${packet.altitude} ... ${packet.altitude-agl}` );
 
                        // If the packet isn't delayed then we should send it out over our websocket
