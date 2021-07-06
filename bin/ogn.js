@@ -298,7 +298,7 @@ async function updateTrackers() {
 
         // If we have a tracker for it then we need to link that as well
         if( t.trackerid && t.trackerid != 'unknown' ) {
-            trackers[ t.trackerid ] = gliders[ mergedName(t) ];
+            trackers[ t.trackerid ] = gliders[ gliderKey ];
         }
 
     });
