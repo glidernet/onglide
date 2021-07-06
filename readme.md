@@ -18,6 +18,12 @@ your soaring spot keys to melissa-ogn@onglide.com and I can set it up for you.
 > source conf/sql/onglide_schema.sql;
 > source conf/sql/sp_nextjs.sql
 
+- install yarn packages
+> yarn install
+
+- install pm2
+> yarn global add pm2
+
 - run the installation script, this will require a mapbox API key, and the database to be loaded
 > yarn setup
 
@@ -26,7 +32,26 @@ your soaring spot keys to melissa-ogn@onglide.com and I can set it up for you.
 - build the application using yarn
 > yarn next build
 
-## Running
+## Running (pm2)
+
+The easiest way is to use pm2
+> pm2 start ecosystem.config.js
+> pm2 start all
+- start webserver
+
+You can use this to see logs
+> pm2 log
+> pm2 log ogn
+
+See status
+> pm2 status
+
+Or to monitor processes 
+> pm2 monit
+
+pm2 will automatically restart the processes if they fail
+
+## Running (yarn)
 
 - start the OGN processor (bin/onglide_ogn.pl) this will fetch data into the database and send on websocket
 > yarn ogn
@@ -39,3 +64,7 @@ your soaring spot keys to melissa-ogn@onglide.com and I can set it up for you.
 
 - start webserver
 
+## Troubleshooting
+
+Default configuration configures url /wsstatus that allows you to see what is happening with the OGN feed on the server end
+PM2 also exposes some of these values and you can easily watch them using pm2 monit
