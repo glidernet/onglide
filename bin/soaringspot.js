@@ -126,13 +126,16 @@ overwrites{hostname} = 0;
 async function update_class(compClass, keys) {
 
     // Get the name of the class, if not set use the type
-    const name = compClass.name ? compClass.name : compClass.type;
+    const nameRaw = compClass.name ? compClass.name : compClass.type;
 
     // Name for URLs and Database
-    const classid = name
+    const classid = nameRaw
           .replace(/\s*(class|klasse)/gi,'')
           .replace(/[^A-Z0-9]/gi,'')
           .substring(0,14);
+
+	const name = nameRaw
+		  .replace(/[_]/gi, ' ');
 
     // Add to the database
     await mysql.query( escape`
