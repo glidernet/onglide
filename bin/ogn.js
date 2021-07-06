@@ -336,6 +336,9 @@ async function updateDDB() {
 
             // Update the cache with the ids by device_id
             ddb = _keyby( ddbraw.devices, 'device_id' );
+
+            // remove the unknown characters from the registration
+            _foreach( ddb, function(entry) { entry.registration = entry?.registration?.replace(/[^A-Z0-9]/i,'') });
         });
 }
 
@@ -712,7 +715,7 @@ function checkUnknown( flarmId, packet ) {
         const ddbf = ddb[flarmId];
 
         // This works by checking what is configured in the ddb
-        if( ddbf && ddbf.cn != "" ) {
+        if( ddbf && (ddbf.cn != "" || ddbf.greg != "")) {
 
             // Find all our gliders that could match, may be 0, 1 or possibly 2
             const matches = _filter( gliders, (x) => { return ((!x.duplicate) && ddbf.cn == x.compno) || ddbf.registration == x.greg } );
