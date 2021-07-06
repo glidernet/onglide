@@ -17,6 +17,7 @@ const WebSocket = require('ws');
 
 // And status display
 const http = require('http');
+const tx2 = require('tx2');
 
 console.log(ISSocket);
 
@@ -72,6 +73,16 @@ let ddb = {}; // device_id: { ddb object }
 
 // APRS connection
 let connection = {};
+
+// Performance counter
+let metrics = { 
+    terrainCache: tx2.metric( { name: 'terrain cache', value: () => getCacheSize()}),
+    knownGliders: tx2.metric( { name: 'gliders (known,total)', value: () =>  [Object.keys(trackers).length, Object.keys(gliders).length] }),
+    unknownGliders: tx2.metric( { name: 'unknown gliders in area', value: () => Object.keys(unknownTrackers).length }),
+    ognPerSecond: tx2.meter( { name: "ogn msgs/sec", samples: 1, timeframe: 60 }),
+    activeGliders: tx2.metric( { name: 'tracked gliders', value: () => _map(channels,(v)=>Object.keys(v?.activeGliders).length) }),
+    viewers: tx2.metric( { name: 'viewers', value: () => _map(channels,(v)=>v?.clients?.length) }),
+};
 
 // Load the current file & Get the parsed version of the configuration
 const dotenv = require('dotenv').config({ path: '.env.local' })
@@ -336,6 +347,9 @@ async function updateDDB() {
 
             // Update the cache with the ids by device_id
             ddb = _keyby( ddbraw.devices, 'device_id' );
+
+            // remove the unknown characters from the registration
+            _foreach( ddb, function(entry) { entry.registration = entry?.registration?.replace(/[^A-Z0-9]/i,'') });
         });
 }
 
@@ -394,7 +408,7 @@ async function sendCurrentState(client) {
     }
 
     // If there has already been a keepalive then we will resend it to the client
-    const lastKeepAliveMsg = channels[client.ognChannel].lastKeepAliveMsg;
+    const lastKeepAliveMsg = channels[client.ognChannel]?.lastKeepAliveMsg;
     if( lastKeepAliveMsg ) {
         client.send( lastKeepAliveMsg );
     }
@@ -537,6 +551,9 @@ async function sendScores() {
 //
 // collect points, emit to competition db every 30 seconds
 function processPacket( packet ) {
+
+    // Count this packet into pm2
+    metrics?.ognPerSecond.mark();
 
     // Flarm ID we use is last 6 characters
     const flarmId = packet.sourceCallsign.slice( packet.sourceCallsign.length - 6 );
@@ -703,7 +720,7 @@ function checkUnknown( flarmId, packet ) {
     const agl = Math.max(packet.altitude-(location.altitude??0),0);
 
     // capture launches close to the airfield (vertically and horizontally)
-    if( distanceFromHome < 300.5 && agl < 2300 ) {
+    if( distanceFromHome < 30 && agl < 2300 ) {
 
         // Store in the unknown list for status display
         unknownTrackers[flarmId] = { firstTime: packet.timestamp, ...unknownTrackers[flarmId], lastTime: packet.timestamp, flarmid: flarmId };
@@ -712,7 +729,7 @@ function checkUnknown( flarmId, packet ) {
         const ddbf = ddb[flarmId];
 
         // This works by checking what is configured in the ddb
-        if( ddbf && ddbf.cn != "" ) {
+        if( ddbf && (ddbf.cn != "" || ddbf.greg != "")) {
 
             // Find all our gliders that could match, may be 0, 1 or possibly 2
             const matches = _filter( gliders, (x) => { return ((!x.duplicate) && ddbf.cn == x.compno) || ddbf.registration == x.greg } );

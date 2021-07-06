@@ -295,7 +295,8 @@ function mergeDB( pilot, tracker )
 function calculateVario( tracker, state, points ) {
 
     // If we have a real score then we are not flying so don't report this...
-    if( tracker.datafromscoring == 'Y' ) {
+    // same if no points
+    if( tracker.datafromscoring == 'Y' || points.length < 1 ) {
         tracker.gainXsecond = undefined;
         tracker.lossXsecond = undefined;
         tracker.min = undefined;
