@@ -45,9 +45,6 @@ const _groupby = require('lodash.groupby');
 // Handle fetching elevation and confirming size of the cache for tiles
 const { getElevationOffset, getCacheSize } = require('../lib/getelevationoffset.js');
 
-// For handling elevation data
-//var tilebelt = require('@mapbox/tilebelt');
-//var getPixels = require('get-pixels');
 
 
 // Where is the comp based
