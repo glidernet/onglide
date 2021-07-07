@@ -688,7 +688,8 @@ async function update_contest(contest,keys) {
 //
 // Fetch values from the soaringpot api
 //
-async function sendSoaringSpotRequest( url, keys ) {
+// Calculate the SoaringSpot API keys
+function soaringSpotAuthHeaders( keys ) {
 
     // This is used to confirm all is fine
     const nonce = crypto.randomBytes(30).toString('base64');
@@ -697,17 +698,23 @@ async function sendSoaringSpotRequest( url, keys ) {
     const dt = new Date().toISOString();
     const message = nonce + dt + keys.client_id;
 
-
-
     // And hash it
     const hash = crypto.createHmac('sha256', keys.secret).update(message).digest('base64');
     const auth_header = 'http://api.soaringspot.com/v1/hmac/v1 ClientID="'+keys.client_id+'", Signature="'+hash+'", Nonce="'+nonce+'", Created="'+dt+'"';
 
-    return fetch( url, {
+    return {
         headers: {
             'Authorization': auth_header
         }
-    }).then(res => res.json());
+    };
+}
+
+//
+// Fetch values from the soaringpot api
+//
+async function sendSoaringSpotRequest( url, keys ) {
+    return fetch( url, soaringSpotAuthHeaders( keys ))
+		.then(res => res.json());
 }
 
 // Get rid of the T at the front...
