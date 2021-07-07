@@ -175,7 +175,7 @@ async function main() {
     // Handle a connect
     connection.on('connect', () => {
         connection.sendLine( connection.userLogin );
-        connection.sendLine(`# ${CALLSIGN} ${config.NEXT_PUBLIC_WEBSOCKET_HOST}`);
+        connection.sendLine(`# onglide ${CALLSIGN} ${config.NEXT_PUBLIC_WEBSOCKET_HOST}`);
     });
 
     // Handle a data packet
