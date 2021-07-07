@@ -100,9 +100,9 @@ async function soaringSpot(deep = false) {
             await update_contest( contest, keys );
 
             // Update each class in the competition
-            contest._embedded['http://api.soaringspot.com/rel/classes'].forEach( async function(cclass) {
+            for ( const cclass of contest._embedded['http://api.soaringspot.com/rel/classes'] ) {
                 update_class( cclass, keys );
-            });
+            }
         }
     });
 }
@@ -173,7 +173,7 @@ async function update_pilots(class_url,classid,classname,keys) {
     // Start a transaction for updating pilots
     let t = mysql.transaction();
 
-    await results._embedded['http://api.soaringspot.com/rel/contestants'].forEach( async function(pilot) {
+    for ( const pilot of results._embedded['http://api.soaringspot.com/rel/contestants'] ) {
 
         // Make sure it has a comp number
         if( ! pilot.contestant_number || pilot.contestant_number == '' || !!pilot.contestant_number.match(/(TBA|TBD)/)) {
@@ -211,7 +211,7 @@ async function update_pilots(class_url,classid,classname,keys) {
         else if( epilot.nationality && epilot.nationality.match(/^[A-Z][A-Z]/) ) {
             //      download_picture( 'http://sample.onglide.com/globalimage/flags/'+epilot.nationality+'.png', pilot.contestant_number, classid);
         }
-    });
+    }
 
     // remove any old pilots as they aren't needed, they may not go immediately but it will be soon enough
     t.query( escape`DELETE FROM pilots WHERE class=${classid} AND registereddt < DATE_SUB(NOW(), INTERVAL 15 MINUTE)`)
@@ -240,13 +240,13 @@ async function process_class_tasks (class_url,classid,classname,keys) {
         return 0;
     }
     let dates = [];
-    tasks._embedded['http://api.soaringspot.com/rel/tasks'].forEach( async function (day) {
+    for ( const day of tasks._embedded['http://api.soaringspot.com/rel/tasks'] ) { 
 
         dates.push(day.task_date);
 
         // Download the task and prep pilotresult table
-        process_day_task( day, classid, classname, keys );
-    });
+        await process_day_task( day, classid, classname, keys );
+    };
 
 
     console.log( `${classname}: ${dates.join(',')} task checks scheduled` );
@@ -264,13 +264,12 @@ async function process_class_results (class_url,classid,classname,keys) {
     }
 
     let dates = [];
-    results._embedded['http://api.soaringspot.com/rel/class_results'].forEach( async function (day) {
-
+    for ( const day of results._embedded['http://api.soaringspot.com/rel/class_results'] ) {
         dates.push(day.task_date);
 
         // Update the scores for the task
-        process_day_scores( day, classid, classname, keys );
-    });
+        await process_day_scores( day, classid, classname, keys );
+    }
 
     console.log( `${classname}: ${dates.join(',')} result checks scheduled` );
 }
@@ -368,7 +367,7 @@ async function process_day_task (day,classid,classname,keys) {
                 "length, bearing, nlat, nlng, Hi, ntrigraph, nname, type, direction, r1, a1, r2, a2, a12 ) "+
                 "VALUES ";
 
-            turnpoints._embedded['http://api.soaringspot.com/rel/points'].forEach( function (tp) {
+            for ( const tp of turnpoints._embedded['http://api.soaringspot.com/rel/points'] ) {
 
                 // We don't handle multiple starts at all so abort
                 if( tp.multiple_start != 0 ) {
@@ -414,7 +413,7 @@ async function process_day_task (day,classid,classname,keys) {
                     toDeg(tp.oz_angle2),
                     tp.oz_type == 'fixed' ? toDeg(tp.oz_angle12) : 0 ]);
 
-            });
+            }
 
             query = query.substring(0,query.length-1);
             // This is done in the chaining
@@ -494,7 +493,7 @@ async function process_day_scores (day,classid,classname,keys) {
     let date = day.task_date;
 
     // It's a big long list of results ;)
-    await day._embedded['http://api.soaringspot.com/rel/results'].forEach( async function (row) {
+    for ( const row of day._embedded['http://api.soaringspot.com/rel/results'] ) {
 
         const pilot = row._embedded['http://api.soaringspot.com/rel/contestant'].contestant_number;
         const handicap = correct_handicap( row._embedded['http://api.soaringspot.com/rel/contestant'].handicap );
@@ -591,7 +590,7 @@ async function process_day_scores (day,classid,classname,keys) {
                                             SET totalpoints=${row.points_total}, totalrank=${row.rank_total}
                                           WHERE datecode=todcode(${date}) AND compno=${pilot} and class=${classid}` );
         }
-    });
+    }
 
 
     // Did anything get updated?
