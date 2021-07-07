@@ -87,6 +87,7 @@ let metrics = {
 // Load the current file & Get the parsed version of the configuration
 const dotenv = require('dotenv').config({ path: '.env.local' })
 const config = dotenv.parsed;
+const readOnly = !!config.OGN_READ_ONLY;
 
 // Set up background fetching of the competition
 async function main() {
@@ -116,6 +117,8 @@ async function main() {
     location.point = point( [location.lt, location.lg] );
 
     const FILTER = `r/${location.lt}/${location.lg}/250`;
+
+	console.log( 'Onglide OGN handler', readOnly ? '(read only)' : '', config.NEXT_PUBLIC_SITEURL ); 
 
     // Set the altitude offset for launching, this will take time to return
     // so there is a period when location altitude will be wrong for launches
@@ -649,10 +652,11 @@ function processPacket( packet ) {
                        }
 
                        // Pop into the database
-                       mysql.query( escape`INSERT IGNORE INTO trackpoints (class,datecode,compno,lat,lng,altitude,agl,t)
+					   if( ! readOnly ) {
+						   mysql.query( escape`INSERT IGNORE INTO trackpoints (class,datecode,compno,lat,lng,altitude,agl,t)
                                                   VALUES ( ${glider.className}, ${channel.datecode}, ${glider.compno},
                                                            ${packet.latitude}, ${packet.longitude}, ${packet.altitude}, ${message.agl}, ${packet.timestamp} )` );
-
+					   }
                    });
 
 }
@@ -757,13 +761,14 @@ function checkUnknown( flarmId, packet ) {
             trackers[flarmId] = match;
 
             // Save in the database so we will reuse them later ;)
-            mysql.transaction()
-                .query( escape`UPDATE tracker SET trackerid = ${flarmId} WHERE
+			if( ! readOnly ) {
+				mysql.transaction()
+					.query( escape`UPDATE tracker SET trackerid = ${flarmId} WHERE
                                       compno = ${match.compno} AND class = ${match.className} AND trackerid="unknown" limit 1` )
-                .query( escape`INSERT INTO trackerhistory (compno,changed,flarmid,launchtime,method) VALUES ( ${match.compno}, now(), ${flarmId}, now(), "ognddb" )`)
-                .commit();
+					.query( escape`INSERT INTO trackerhistory (compno,changed,flarmid,launchtime,method) VALUES ( ${match.compno}, now(), ${flarmId}, now(), "ognddb" )`)
+					.commit();
+			}
         }
-
     }
 }
 
