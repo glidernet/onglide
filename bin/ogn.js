@@ -45,6 +45,8 @@ const _groupby = require('lodash.groupby');
 // Handle fetching elevation and confirming size of the cache for tiles
 const { getElevationOffset, getCacheSize } = require('../lib/getelevationoffset.js');
 
+// handle unkownn gliders
+const { capturePossibleLaunchLanding } = require('../lib/launchlanding.js');
 
 
 // Where is the comp based
@@ -725,6 +727,9 @@ function checkUnknown( flarmId, packet ) {
     // capture launches close to the airfield (vertically and horizontally)
     if( distanceFromHome < 30 && agl < 2300 ) {
 
+		// Check if it's a possible launch
+		capturePossibleLaunchLanding( flarmId, packet.timestamp, jPoint, agl, mysql, 'flarm' );
+		
         // Store in the unknown list for status display
         unknownTrackers[flarmId] = { firstTime: packet.timestamp, ...unknownTrackers[flarmId], lastTime: packet.timestamp, flarmid: flarmId };
 
@@ -768,6 +773,7 @@ function checkUnknown( flarmId, packet ) {
         }
     }
 }
+
 
 //
 // Simple webserver to display the status

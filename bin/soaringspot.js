@@ -9,6 +9,19 @@ const crypto = require('crypto');
 // Helper
 const fetcher = url => fetch(url).then(res => res.json());
 
+// We use these to get IGCs from SoaringSpot streaming
+var readline = require('readline');
+var https = require('https');
+const { point } = require ( '@turf/helpers' );
+const distance = (require( '@turf/distance' )).default;
+const { getElevationOffset } = require('../lib/getelevationoffset.js');
+// handle unkownn gliders
+const { capturePossibleLaunchLanding } = require('../lib/launchlanding.js');
+
+
+const _groupby = require('lodash.groupby');
+const _forEach = require('lodash.forEach');
+
 // DB access
 //const db = require('../db')
 const escape = require('sql-template-strings')
@@ -27,6 +40,8 @@ const oz_types = { 'symmetric': 'symmetrical',
 // Load the current file
 const dotenv = require('dotenv').config({ path: '.env.local' })
 
+// Location information, fetched from DB
+var location;
 
 // Set up background fetching of the competition
 async function main() {
@@ -45,7 +60,17 @@ async function main() {
         password: config.MYSQL_PASSWORD
     });
 
+    // Location comes from the competition table in the database
+    // Set the altitude offset for launching, this will take time to return
+    // so there is a period when location altitude will be wrong for launches
+    location = (await mysql.query( 'SELECT lt,lg FROM competition LIMIT 1' ))[0];
+    location.point = point( [location.lt, location.lg] );
+    getElevationOffset( config, location.lt, location.lg,
+						(agl) => { location.altitude = agl;console.log('SITE Altitude:'+agl) });
 
+	console.log(config);
+
+	// Now get data from soaringspot
     soaringSpot();
 
     console.log( "Background download from soaring spot enabled" );
@@ -491,6 +516,7 @@ async function process_day_task (day,classid,classname,keys) {
 async function process_day_scores (day,classid,classname,keys) {
     let rows = 0;
     let date = day.task_date;
+	let checkForOGNMatches = false;
 
     // It's a big long list of results ;)
     for ( const row of day._embedded['http://api.soaringspot.com/rel/results'] ) {
@@ -559,23 +585,16 @@ async function process_day_scores (day,classid,classname,keys) {
             //          console.log(`${pilot}: ${handicap} (${duration} H) ${scoredvals.ad} ${scoredvals.hd}` );
             rows += r.affectedRows;
 
-            /* this would be for downloading the igc file, not needed when just displaying live tracking
-               # check to see if we need to download the igc file
-               my (igcavailable,dcode) = mysql->selectrow_array( 'select igcavailable,todcode(?) from pilotresult '.
-               ' where datecode=todcode(?) and compno=? and class=? and (select noresults from competition) != "Y"',
-               undef,
-               date, date, pilot, classid );
-
-               if( (igcavailable||'Y') eq 'N' ) {
-               if( download_igc( dcode, pilot, row._links->{"http://api.soaringspot.com/rel/flight"}->{'href, client_id, secret ) ) {
-               mysql->do( 'update pilotresult set igcavailable = "Y" where datecode=? and compno=? and class=?', undef,
-               dcode, pilot, classid );
-               }
-               }
-            */
-
-        }
-
+            // check the file to check tracking details
+            let { igcavailable } = (await mysql.query( escape`SELECT igcavailable FROM pilotresult
+                                                              WHERE datecode=todcode(${date}) and compno=${pilot} and class=${classid}` ))[0];			
+            if( (igcavailable||'Y') == 'N' ) {
+				console.log( date, pilot, igcavailable );
+				await processIGC( keys, classid, pilot, location.altitude, date, row._links["http://api.soaringspot.com/rel/flight"]['href']);
+				checkForOGNMatches = true;
+			}
+		}
+		
         // if somebody has manually put the start times into SeeYou then capture it
         else if( row.scored_start ) {
             await mysql.query( escape`UPDATE pilotresult
@@ -593,6 +612,64 @@ async function process_day_scores (day,classid,classname,keys) {
     }
 
 
+	// If we processed an IGC file we should check to see if we have an OGN launch/landing match
+	if( checkForOGNMatches || true ) {
+		
+		// Check what ones we have (simplier to do as two queries)
+		const trackersRaw = (await mysql.query( escape`SELECT compno, trackerid FROM tracker WHERE class=${classid}` ));
+		const trackers = _groupby( trackersRaw, 'compno' );
+
+		// Find the potential associations
+		const key = [date.substring(8,11),classid,'%'].join('/');
+		const matchesRaw = (await mysql.query( escape`SELECT mo.id flarmid, mi.id glider, group_concat(mi.action ORDER BY mi.action) actions FROM movements mo 
+                                                            JOIN movements mi ON mo.action = mi.action and abs(truncate(mo.time/30,0)-truncate(mi.time/30,0)) < 4 and mo.id != mi.id 
+                                                            WHERE mi.type='igc' and mo.type='flarm' and mi.id like ${key} 
+                                                            GROUP BY 1,2 
+                                                            HAVING actions='landing,launch'`));
+		if( ! matchesRaw ) {
+			console.log( `${date} ${classid}: no IGC/OGN matches found` );
+		}
+		else {
+
+			// Collect duplicates, if we have more than one match then we must ignore it
+			const matches = _groupby( matchesRaw, 'glider' );
+			
+			_forEach(matches, (mx) => {
+				const m = mx[0];
+
+				// Get compno and make sure it's valid
+				const mCompno = m.glider.split('/')[2];
+				if( ! (mCompno in trackers) ) {
+					console.log( `${date} ${classid} - ${mCompno} missing from tracker table` );
+				}
+
+				// Make sure there is only one match, if there are two then we ignore it
+				if( mx.length > 1 ) {
+					console.log( `${date} ${classid} - ${mCompno} skipping launch matching as duplicate flarm launch times` );
+					return;
+				}
+
+				// Check what is in the tracker table
+				const flarmid = trackers[mCompno]?.[0].trackerid;
+				if( flarmid == 'unknown' ) {
+					console.log( `${date} ${classid} - ${mCompno} associated to ${m.flarmid} from takeoff/landing time match` );
+					
+					// Do an associate and log that we did (or tried)
+					mysql.transaction()
+						.query( escape`UPDATE tracker SET trackerid = ${m.flarmid} 
+                                                WHERE compno = ${mCompno} AND class = ${classid} AND trackerid="unknown" limit 1` )
+						.query( escape`INSERT INTO trackerhistory (compno,changed,flarmid,launchtime,method) VALUES ( ${mCompno}, now(), ${m.flarmid}, now(), "tltimes" )`)
+						.commit();
+				}
+				else {
+					if( flarmid != m.flarmid ) {
+						console.log( `${date} ${classid} - ${mCompno} already has ID ${flarmid} but matched ${m.flarmid} from takeoff/landing time match` );
+					}
+				}
+			} );
+		}
+	}
+	
     // Did anything get updated?
     if( rows ) {
         await mysql.query( escape`UPDATE contestday SET results_uploaded=NOW()
@@ -684,9 +761,111 @@ async function update_contest(contest,keys) {
     }
 }
 
-
 //
-// Fetch values from the soaringpot api
+// Get an IGC file from soaring spot so we can process it
+async function processIGC( keys, classid, compno, airfieldalt, date, url ) {
+
+	// IGC files may be from a Flarm, if they are then we can extract the flarm ID from them
+	// and associate it with the device
+	let flarm_lfla = new RegExp(/LFLA[0-9]+ID [0-9] ([0-9A-F]{6})/i );
+	let flarm_lxvfla = new RegExp(/LLXVFLARM:LXV,[0-9.]+,([0-9A-F]{6})/i );
+	let brecord = new RegExp(/^B([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{3})([NS])([0-9]{3})([0-9]{2})([0-9]{3})([EW])A([0-9]{5})([0-9]{5})/i);
+	let hfdte = new RegExp(/^HFDTE([0-9]{2})([0-9]{2})([0-9]{2})/i);
+	let hfdtedate = new RegExp(/^HFDTEDATE:([0-9]{2})([0-9]{2})([0-9]{2})/i);
+
+	// This will be captured from the header hfdte record, file isn't valid without hfdte record
+	var epochbase = 0;
+	var date;
+
+	// Used to track state and updated into the database we use the day of the month
+	// because in node these could be executed in parallel
+	let key = [date.substring(8,11),classid,compno].join('/');
+
+	// Initiate a streaming request
+	var request = https
+		.get(url,
+			 soaringSpotAuthHeaders( keys ),
+			 function(response) {
+				 var myInterface = readline.createInterface({
+					 input: response
+				 });
+				 
+				 myInterface.on( 'close', () => {
+					 if( date ) {
+						 mysql.query( escape`UPDATE pilotresult SET igcavailable='P' WHERE datecode=todcode(${date}) and compno=${compno} and class=${classid}` );
+					 }
+					 else {
+						 console.log( `unable to persist igc results for ${classid}, ${compno}`);
+					 }
+					 console.log( `completed ${classid}, ${compno}` );
+				 });
+				 
+				 // For each line in the response
+				 myInterface.on( 'line', (line) => {
+
+					 var matches;
+
+					 // We will also look for takeoffs and landings just in case
+					 // we need a date record in the file to form a valid time
+					 if( epochbase && (matches = line.match( brecord ))) {
+
+						 // Get the file time, will be UTC convert to seconds
+						 const time = (parseInt(matches[1]) * 3600)
+							   + (parseInt(matches[2]) * 60)
+							   + parseInt(matches[3])
+							   + epochbase;
+
+						 // Extract lat & lng
+						 let lat = (parseInt(matches[4])) + (parseInt(matches[5])/60) + (parseInt(matches[6])/1000)/60;
+						 let lng = (parseInt(matches[8])) + (parseInt(matches[9])/60) + (parseInt(matches[10])/1000)/60;
+
+						 if( matches[7] == 'S' ) {
+							 lat = -lat;
+						 }
+
+						 if( matches[11] == 'W' ) {
+							 lng = -lng;
+						 }
+						 const jPoint = point( [lat, lng] );
+
+						 // Use GPS if present otherwise use pressure altitude, less drift during the day
+						 let alt = parseInt(matches[13] ? matches[13] : matches[12]);
+
+						 if( distance( jPoint, location.point, { units: 'kilometers' } ) < 20 ) {
+
+							 // Now we need to check if it is a launch or landing point
+							 // yes some files contain this information but we use same algo
+							 // for flarm so hopefully a closer match
+							 capturePossibleLaunchLanding( key, time,
+														   jPoint, alt - airfieldalt,
+														   mysql, 'igc' );
+						 }
+					 }
+
+					 
+					 // If the file contains a flarm ID then we can just use that and be done
+					 if( (matches = line.match( flarm_lfla )) || (matches = line.match( flarm_lxvfla ))) {
+						 let flarmId = matches[1];
+						 console.log( ` SoaringSpot IGC for ${classid}:${compno} contains flarm id ${flarmId}`)
+
+						 // Do an associate and log that we did (or tried)
+						 mysql.transaction()
+							 .query( escape`UPDATE tracker SET trackerid = ${flarmId} WHERE
+                                      compno = ${compno} AND class = ${classid} AND trackerid="unknown" limit 1` )
+							 .query( escape`INSERT INTO trackerhistory (compno,changed,flarmid,launchtime,method) VALUES ( ${compno}, now(), ${flarmId}, now(), "igcfile" )`)
+							 .commit();
+					 }
+
+					 // Get the file date
+					 if( (matches = line.match( hfdte )) || (matches = line.match( hfdtedate )) ) {
+						 date = `20${matches[3]}-${matches[2]}-${matches[1]}`;
+						 epochbase = Math.round(new Date( date ).getTime()/1000);
+					 }
+					 
+				 });
+			 });
+}
+
 //
 // Calculate the SoaringSpot API keys
 function soaringSpotAuthHeaders( keys ) {
