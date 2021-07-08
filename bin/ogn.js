@@ -764,6 +764,7 @@ function checkUnknown( flarmId, packet ) {
 
             // Save in the database so we will reuse them later ;)
 			if( ! readOnly ) {
+				console.log( `update db ${compno}` );
 				mysql.transaction()
 					.query( escape`UPDATE tracker SET trackerid = ${flarmId} WHERE
                                       compno = ${match.compno} AND class = ${match.className} AND trackerid="unknown" limit 1` )
