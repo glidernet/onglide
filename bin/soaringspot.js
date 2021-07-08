@@ -613,7 +613,7 @@ async function process_day_scores (day,classid,classname,keys) {
 
 
 	// If we processed an IGC file we should check to see if we have an OGN launch/landing match
-	if( checkForOGNMatches || true ) {
+	if( checkForOGNMatches ) {
 		
 		// Check what ones we have (simplier to do as two queries)
 		const trackersRaw = (await mysql.query( escape`SELECT compno, trackerid FROM tracker WHERE class=${classid}` ));
@@ -626,13 +626,15 @@ async function process_day_scores (day,classid,classname,keys) {
                                                             WHERE mi.type='igc' and mo.type='flarm' and mi.id like ${key} 
                                                             GROUP BY 1,2 
                                                             HAVING actions='landing,launch'`));
-		if( ! matchesRaw ) {
+		if( ! matchesRaw || ! matchesRaw.length ) {
 			console.log( `${date} ${classid}: no IGC/OGN matches found` );
 		}
 		else {
 
 			// Collect duplicates, if we have more than one match then we must ignore it
 			const matches = _groupby( matchesRaw, 'glider' );
+			
+			console.log( `${date} ${classid}: ${Object.keys(matches).length} matches found` );
 			
 			_forEach(matches, (mx) => {
 				const m = mx[0];
@@ -774,15 +776,15 @@ async function processIGC( keys, classid, compno, airfieldalt, date, url ) {
 	let hfdtedate = new RegExp(/^HFDTEDATE:([0-9]{2})([0-9]{2})([0-9]{2})/i);
 
 	// This will be captured from the header hfdte record, file isn't valid without hfdte record
-	var epochbase = 0;
-	var date;
+	let epochbase = 0;
+	let validFile = false;
 
 	// Used to track state and updated into the database we use the day of the month
 	// because in node these could be executed in parallel
 	let key = [date.substring(8,11),classid,compno].join('/');
 
 	// Initiate a streaming request
-	var request = https
+	let request = https
 		.get(url,
 			 soaringSpotAuthHeaders( keys ),
 			 function(response) {
@@ -791,13 +793,10 @@ async function processIGC( keys, classid, compno, airfieldalt, date, url ) {
 				 });
 				 
 				 myInterface.on( 'close', () => {
-					 if( date ) {
-						 mysql.query( escape`UPDATE pilotresult SET igcavailable='P' WHERE datecode=todcode(${date}) and compno=${compno} and class=${classid}` );
+					 mysql.query( escape`UPDATE pilotresult SET igcavailable=${validFile?'P':'F'} WHERE datecode=todcode(${date}) and compno=${compno} and class=${classid}` );
+					 if( validFile ) {
+						 console.log( `processed ${date} ${classid} - ${compno} successfully` );
 					 }
-					 else {
-						 console.log( `unable to persist igc results for ${classid}, ${compno}`);
-					 }
-					 console.log( `completed ${classid}, ${compno}` );
 				 });
 				 
 				 // For each line in the response
@@ -833,6 +832,10 @@ async function processIGC( keys, classid, compno, airfieldalt, date, url ) {
 
 						 if( distance( jPoint, location.point, { units: 'kilometers' } ) < 20 ) {
 
+							 // We are valid if we have a point within 20km of configured airfield
+							 // will also require epochbase to be set to make it this far
+							 validFile = true;
+
 							 // Now we need to check if it is a launch or landing point
 							 // yes some files contain this information but we use same algo
 							 // for flarm so hopefully a closer match
@@ -854,11 +857,15 @@ async function processIGC( keys, classid, compno, airfieldalt, date, url ) {
                                       compno = ${compno} AND class = ${classid} AND trackerid="unknown" limit 1` )
 							 .query( escape`INSERT INTO trackerhistory (compno,changed,flarmid,launchtime,method) VALUES ( ${compno}, now(), ${flarmId}, now(), "igcfile" )`)
 							 .commit();
+
+						 // We may not have processed it but we did get useful information from it so that's
+						 // good enough
+						 validFile = true;
 					 }
 
 					 // Get the file date
 					 else if( (matches = line.match( hfdte )) || (matches = line.match( hfdtedate )) ) {
-						 date = `20${matches[3]}-${matches[2]}-${matches[1]}`;
+//						 date = `20${matches[3]}-${matches[2]}-${matches[1]}`;
 						 epochbase = Math.round(new Date( date ).getTime()/1000);
 					 }
 					 
