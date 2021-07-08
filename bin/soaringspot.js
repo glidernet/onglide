@@ -844,7 +844,7 @@ async function processIGC( keys, classid, compno, airfieldalt, date, url ) {
 
 					 
 					 // If the file contains a flarm ID then we can just use that and be done
-					 if( (matches = line.match( flarm_lfla )) || (matches = line.match( flarm_lxvfla ))) {
+					 else if( (matches = line.match( flarm_lfla )) || (matches = line.match( flarm_lxvfla ))) {
 						 let flarmId = matches[1];
 						 console.log( ` SoaringSpot IGC for ${classid}:${compno} contains flarm id ${flarmId}`)
 
@@ -857,7 +857,7 @@ async function processIGC( keys, classid, compno, airfieldalt, date, url ) {
 					 }
 
 					 // Get the file date
-					 if( (matches = line.match( hfdte )) || (matches = line.match( hfdtedate )) ) {
+					 else if( (matches = line.match( hfdte )) || (matches = line.match( hfdtedate )) ) {
 						 date = `20${matches[3]}-${matches[2]}-${matches[1]}`;
 						 epochbase = Math.round(new Date( date ).getTime()/1000);
 					 }
