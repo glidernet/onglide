@@ -86,7 +86,7 @@ let metrics = {
 // Load the current file & Get the parsed version of the configuration
 const dotenv = require('dotenv').config({ path: '.env.local' })
 const config = dotenv.parsed;
-const readOnly = !!config.OGN_READ_ONLY;
+const readOnly = config.OGN_READ_ONLY == undefined ? false : (!!(parseInt(config.OGN_READ_ONLY)));
 
 // Set up background fetching of the competition
 async function main() {
