@@ -561,15 +561,8 @@ function processPacket( packet ) {
     // Flarm ID we use is last 6 characters
     const flarmId = packet.sourceCallsign.slice( packet.sourceCallsign.length - 6 );
 
-    // Look it up, do we have a match?
-    const glider = trackers[flarmId];
-
-    if( ! glider ) {
-        return checkUnknown( flarmId, packet );
-    }
 
     // Check if the packet is late, based on previous packets for the glider
-    const islate = ( glider.lastTime > packet.timestamp );
     const now = (new Date()).getTime()/1000;
     const td = now - packet.timestamp;
 
@@ -577,6 +570,14 @@ function processPacket( packet ) {
     let printedalready = 0;
     const jPoint = point( [packet.latitude, packet.longitude] );
 
+    checkAssociation( flarmId, packet, jPoint, trackers[flarmId] );
+
+    // Look it up, do we have a match?
+    const glider = trackers[flarmId];
+	if( ! glider ) {
+		return;
+    }
+	
     // Check to make sure they have moved or that it's been about 10 seconds since the last update
     // this reduces load from stationary gliders on the ground and allows us to track stationary gliders
     // better
@@ -588,9 +589,11 @@ function processPacket( packet ) {
     } else {
         glider.lastMoved = packet.timestamp;
     }
+	
+    const islate = ( glider.lastTime > packet.timestamp );
     if( ! islate ) {
-    glider.lastPoint = jPoint;
-    glider.lastAlt = packet.altitude;
+		glider.lastPoint = jPoint;
+		glider.lastAlt = packet.altitude;
         glider.lastTime = packet.timestamp;
     }
 
@@ -631,6 +634,7 @@ function processPacket( packet ) {
                    async (gl) => {
                        message.agl = Math.round(Math.max(packet.altitude-gl,0));
 					   glider.agl = message.agl;
+					   glider.altitude = packet.altitude;
                        // console.log( `${glider.compno}: ${packet.latitude},${packet.longitude} - EL: ${agl}, A/C ${packet.altitude} ... ${packet.altitude-agl}` );
 
                        // If the packet isn't delayed then we should send it out over our websocket
@@ -716,16 +720,15 @@ function calculateVario( glider, altitude, timestamp ) {
 //
 // Determine if it is close enough to the launch point to be considered launched from this site
 //
-function checkUnknown( flarmId, packet ) {
+function checkAssociation( flarmId, packet, jPoint, glider ) {
 
-    const jPoint = point( [packet.latitude, packet.longitude] );
     const distanceFromHome = distance( jPoint, location.point );
 
     // How high are we above the airfield
     const agl = Math.max(packet.altitude-(location.altitude??0),0);
 
     // capture launches close to the airfield (vertically and horizontally)
-    if( distanceFromHome < 30 && agl < 2300 ) {
+    if( distanceFromHome < 30 && agl < 1500 ) {
 
 		// Check if it's a possible launch
 		capturePossibleLaunchLanding( flarmId, packet.timestamp, jPoint, agl, mysql, 'flarm' );
@@ -736,6 +739,11 @@ function checkUnknown( flarmId, packet ) {
         // Do we have it in the DDB?
         const ddbf = ddb[flarmId];
 
+		// If we have matched before then don't do it again
+		if( unknownTrackers[flarmId].message ) {
+			return;
+		}
+
         // This works by checking what is configured in the ddb
         if( ddbf && (ddbf.cn != "" || ddbf.greg != "")) {
 
@@ -744,7 +752,7 @@ function checkUnknown( flarmId, packet ) {
 
             if( ! Object.keys(matches).length ) {
                 unknownTrackers[flarmId].message = `Not in competition ${ddbf.cn} (${ddbf.registration}) - ${ddbf.aircraft_model}`;
-                return;
+				return;
             }
 
             if( matches.length > 1 ) {
@@ -755,16 +763,40 @@ function checkUnknown( flarmId, packet ) {
             // And we will use the first one
             const match = matches[0];
 
-            console.log( flarmId + ": matched ddb " + JSON.stringify(match) );
-            unknownTrackers[flarmId].matched = `${match.compno} ${match.className} (${match.registration})`;
+            unknownTrackers[flarmId].matched = `${match.compno} ${match.className} (${ddbf.registration}/${ddbf.cn})`;
 
-            // Link the two together
-            match.trackerid = flarmId;
-            trackers[flarmId] = match;
+			// Check to see if it's a swap between gliders, if it is then we will remove the link to the old one
+			if( glider !== undefined ) {
 
-            // Save in the database so we will reuse them later ;)
+				// Same glider then ignore
+				if( match.compno == glider.compno && match.className == glider.className ) {
+					return;
+				}
+
+				// New compno then we need to break old association
+				else {
+					console.log( `${flarmId}:  flarm change, previously matched to ${glider.compno} (${glider.className})`);	
+					unknownTrackers[flarmId].matched = `flarm change: ${match.compno} ${match.className} (${match.registration}) previously ${glider.compno}`;
+					glider.trackerid = 'unknown';
+					
+					if( ! readOnly ) {
+						mysql.transaction()
+							.query( escape`UPDATE tracker SET trackerid = 'unknown' WHERE
+                                          compno = ${glider.compno} AND class = ${glider.className} limit 1` )
+							.query( escape`INSERT INTO trackerhistory (compno,changed,flarmid,launchtime,method) VALUES ( ${match.compno}, now(), 'chgreg', now(), "ognddb" )`)
+							.commit();
+					}
+				}
+			}
+			
+			console.log( `${flarmId}:  found in ddb, matched to ${glider.compno} (${glider.className})`);
+			
+			// Link the two together
+			match.trackerid = flarmId;
+			trackers[flarmId] = match;
+			
+			// Save in the database so we will reuse them later ;)
 			if( ! readOnly ) {
-				console.log( `update db ${compno}` );
 				mysql.transaction()
 					.query( escape`UPDATE tracker SET trackerid = ${flarmId} WHERE
                                       compno = ${match.compno} AND class = ${match.className} AND trackerid="unknown" limit 1` )
