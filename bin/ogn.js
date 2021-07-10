@@ -112,7 +112,7 @@ async function main() {
     const PORTNUMBER = 14580;
 
     // Location comes from the competition table in the database
-    location = (await mysql.query( 'SELECT lt,lg FROM competition LIMIT 1' ))[0];
+    location = (await mysql.query( 'SELECT lt,lg,tz FROM competition LIMIT 1' ))[0];
     location.point = point( [location.lt, location.lg] );
 
     const FILTER = `r/${location.lt}/${location.lg}/250`;
@@ -855,16 +855,9 @@ async function withElevation(lt,lg,cb) {
     getElevationOffset( config, lt, lg, cb );
 }
 
+// Display a time as competition time, use 24hr clock (en-GB)
 function timeToText( t ) {
     if( ! t ) return '';
-    var cT = new Date(0); cT.setUTCSeconds( t );
-    var mins = cT.getMinutes();
-    if( mins < 10 ) {
-        mins = "0"+mins;
-    }
-    var secs = cT.getSeconds();
-    if( secs < 10 ) {
-        secs = "0"+secs;
-    }
-    return cT.getHours() + ":" + mins + ":" + secs;
+    var cT = new Date(t*1000);
+	return cT.toLocaleTimeString( 'en-GB', {timeZone: location.tz, hour: "2-digit", minute: "2-digit"});
 }
