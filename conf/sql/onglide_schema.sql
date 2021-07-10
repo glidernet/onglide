@@ -103,8 +103,8 @@ CREATE TABLE `competition` (
   
   `countrycode` char(2) DEFAULT 'UK',
   
-  `tzoffset` int(11) DEFAULT NULL COMMENT 'TZ offset from GMT in seconds',
-  `tz` char(6) DEFAULT '+1:00' COMMENT 'TZ offset in database units',
+  `tzoffset` int(11) DEFAULT 7200 COMMENT 'TZ offset from GMT in seconds (calculated)',
+  `tz` char(40) DEFAULT 'Europe/Stockholm' COMMENT 'TZ offset from SoaringSpot',
   
   `mainwebsite` varchar(240) DEFAULT NULL COMMENT 'Used when clicking on comp name to return to primary website',
   `lt` float DEFAULT NULL COMMENT 'launch/landing location',

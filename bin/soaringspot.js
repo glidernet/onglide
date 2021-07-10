@@ -39,6 +39,7 @@ const oz_types = { 'symmetric': 'symmetrical',
 
 // Load the current file
 const dotenv = require('dotenv').config({ path: '.env.local' })
+const config = dotenv.parsed;
 
 // Location information, fetched from DB
 var location;
@@ -51,22 +52,12 @@ async function main() {
         process.exit();
     }
 
-    const config = dotenv.parsed;
-
     mysql.config({
         host: config.MYSQL_HOST,
         database: config.MYSQL_DATABASE,
         user: config.MYSQL_USER,
         password: config.MYSQL_PASSWORD
     });
-
-    // Location comes from the competition table in the database
-    // Set the altitude offset for launching, this will take time to return
-    // so there is a period when location altitude will be wrong for launches
-    location = (await mysql.query( 'SELECT lt,lg FROM competition LIMIT 1' ))[0];
-    location.point = point( [location.lt, location.lg] );
-    getElevationOffset( config, location.lt, location.lg,
-						(agl) => { location.altitude = agl;console.log('SITE Altitude:'+agl) });
 
 	console.log(config);
 
@@ -698,7 +689,7 @@ async function update_contest(contest,keys) {
     const count = (await mysql.query( 'SELECT COUNT(*) cnt FROM competition' ));
     if( ! count || !count[0] || ! count[0].cnt ) {
         console.log( "Empty competition, pre-populating" );
-        mysql.query( 'INSERT IGNORE INTO competition ( tz ) VALUES ( "+00:00" )' );
+        mysql.query( 'INSERT IGNORE INTO competition ( tz, tzoffset ) VALUES ( "Europe/Stockholm", 7200 )' );
     }
 
     //
@@ -711,32 +702,36 @@ async function update_contest(contest,keys) {
 
 
     // If we have a location then update
-    const location = contest._embedded['http://api.soaringspot.com/rel/location'];
-    if( location && location.latitude ) {
-        const lat = toDeg(location.latitude);
-        const lng = toDeg(location.longitude);
+    const ssLocation = contest._embedded['http://api.soaringspot.com/rel/location'];
+    if( ssLocation && ssLocation.latitude ) {
+        const lat = toDeg(ssLocation.latitude);
+        const lng = toDeg(ssLocation.longitude);
         await mysql.query( escape`UPDATE competition SET lt = ${lat}, lg = ${lng},
-                                                      sitename = ${location.name}`);
-    }
+                                                      sitename = ${ssLocation.name}`);
 
+		// Save four our use
+		location = {
+			lt: lat,
+			lg: lng,
+			point: point( [lat, lng] ),
+		};
+		// Calculate elevation so we can do launch calculations from the IGC files
+		getElevationOffset( config, location.lt, location.lg,
+							(agl) => { location.altitude = agl;console.log('SITE Altitude:'+agl) });
+	}
+
+	//
+	// We need to save timezone and calculate the offset from UTC
     const dbtz = (await mysql.query( escape`
-           SELECT tz, LEFT((TIMEDIFF(CONVERT_TZ(NOW(),'+00:00',${contest.time_zone}),NOW())),6) newtz
+           SELECT time_to_sec(TIMEDIFF(CONVERT_TZ(NOW(),'+00:00',${contest.time_zone}),NOW())) tzoffset
              FROM competition`))[0];
 
-    if( dbtz && dbtz.tz ) {
-        // Extract timezone
-        // probably wrong for tz 00:00, think it's in the ocean
-        let newtz = dbtz.newtz.replace(/:$/,'')
-        if( !newtz.match(/^[+-]/)) {
-            newtz = "+"+newtz;
-        }
-        if( newtz != dbtz.tz ) {
-            console.log( "current tz: "+dbtz.tz+" changing to "+newtz);
-            console.log( await mysql.query( escape`UPDATE competition set tz=${newtz}, tzoffset=time_to_sec(TIMEDIFF(CONVERT_TZ(NOW(),'+00:00',${newtz}),NOW())) `) );
-        }
+    if( dbtz && dbtz.tzoffset ) {
+        await mysql.query( escape`UPDATE competition set tz=${contest.time_zone}, tzoffset=${dbtz.tzoffset} `);
 	}
 	else {
- 			console.log( "TZ table not installed in mysql Please Correct (https://dev.mysql.com/doc/refman/8.0/en/mysql-tzinfo-to-sql.html)" );
+ 		console.log( "TZ table not installed in mysql Please Correct (https://dev.mysql.com/doc/refman/8.0/en/mysql-tzinfo-to-sql.html)" );
+		process.exit();
  	}
 
     // And fix the URL to whatever is configured in soaringspot
