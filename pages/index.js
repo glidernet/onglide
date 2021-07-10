@@ -103,7 +103,8 @@ function CombinePage( props ) {
 
     // And keep track of who is selected
     const [ selectedCompno, setSelectedCompno ] = useState();
-    const [ options, setOptions ] = useState( { rainRadar: 1 } );
+	// Get our options from _app.js
+	const options = props.options;
 
     // And display in progress until they are loaded
     if (isLoading)
@@ -149,7 +150,7 @@ function CombinePage( props ) {
                 <Row>
                     <Col sm={7}>
                         <TaskMap vc={className} datecode={selectedClass?selectedClass.datecode:'07C'} selectedPilot={selectedPilot}
-                                 mapRef={mapRef} pilots={pilots} lat={props.lat} lng={props.lng} options={options}/>
+                                 mapRef={mapRef} pilots={pilots} lat={props.lat} lng={props.lng} options={options} setOptions={props.setOptions} tz={props.tz}/>
                         <OgnFeed vc={className} datecode={selectedClass?selectedClass.datecode:'07C'} selectedPilot={selectedPilot}
                                  pilots={pilots} mutatePilots={mutate} mapRef={mapRef} tz={props.tz}/>
                     </Col>
@@ -158,7 +159,7 @@ function CombinePage( props ) {
                         {isPLoading &&<><Icon type="plane" spin={true}/> Loading pilots...</>
                         }
                         {pilots &&
-                         <PilotList vc={className} pilots={pilots} selectedPilot={selectedPilot} setSelectedCompno={(x)=>setSelectedCompno(x)}/>
+                         <PilotList vc={className} pilots={pilots} selectedPilot={selectedPilot} setSelectedCompno={(x)=>setSelectedCompno(x)} options={options}/>
                         }
                     </Col>
                 </Row>
