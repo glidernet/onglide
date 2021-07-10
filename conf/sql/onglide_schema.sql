@@ -103,8 +103,8 @@ CREATE TABLE `competition` (
   
   `countrycode` char(2) DEFAULT 'UK',
   
-  `tzoffset` int(11) DEFAULT NULL COMMENT 'TZ offset from GMT in seconds',
-  `tz` char(6) DEFAULT '+1:00' COMMENT 'TZ offset in database units',
+  `tzoffset` int(11) DEFAULT 7200 COMMENT 'TZ offset from GMT in seconds (calculated)',
+  `tz` char(40) DEFAULT 'Europe/Stockholm' COMMENT 'TZ offset from SoaringSpot',
   
   `mainwebsite` varchar(240) DEFAULT NULL COMMENT 'Used when clicking on comp name to return to primary website',
   `lt` float DEFAULT NULL COMMENT 'launch/landing location',
@@ -473,7 +473,21 @@ CREATE TABLE `trackerhistory` (
   `flarmid` char(10) DEFAULT NULL,
   `greg` char(12) DEFAULT NULL,
   `launchtime` time DEFAULT NULL,
-  `method` enum('none','startline','pilot','ognddb') DEFAULT 'none'
+  `method` enum('none','startline','pilot','ognddb','igcfile','tltimes') DEFAULT 'none'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+
+DROP TABLE IF EXISTS `movements`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `movements` (
+  `action` char(10) NOT NULL,
+  `time` int(11) NOT NULL,
+  `id` char(40) NOT NULL,
+  `type` enum('flarm','igc') DEFAULT NULL,
+  PRIMARY KEY (`id`,`time`,`action`),
+  KEY `action` (`action`,`type`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
