@@ -28,6 +28,7 @@
         "lodash.find": ">=4.6.0",
         "lodash.foreach": ">=4.5.0",
         "lodash.groupby": ">=4.6.0",
+        "lodash.isequal": "^4.5.0",
         "lodash.keyby": ">=4.6.0",
         "lodash.map": ">=4.6.0",
         "lodash.mapvalues": ">=4.6.0",
@@ -49,6 +50,7 @@
         "serverless-mysql": ">=1.5.4",
         "sql-template-strings": ">=2.2.2",
         "swr": ">=0.2.3",
+        "tx2": "^1.0.4",
         "ws": ">=7.3"
     }
 }
