@@ -59,18 +59,28 @@ function Menu( props ) {
                                                  </Nav.Link>
                                              </Nav.Item>);
 
+	// Try and extract a short form of the name, only letters and spaces stop at first number
+	const shortName = comp.competition.name.match( new RegExp(/^([\p{L}\s]*)/,'u'))?.[1]?.trim() || comp.competition.name;
     return (
         <>
             <Navbar bg="light" fixed="top">
                 <Nav fill variant="tabs" defaultActiveKey={props.vc} style={{width:'100%'}}>
                     {classes}
-                </Nav>
-                <Navbar.Collapse id="responsive-navbar-nav">
-                    <Navbar.Brand href={comp.competition.mainwebsite}>
-                        <Nbsp/>
-                        {comp.competition.name}<span style={{fontSize: '70%'}}>{comp.competition.start} to {comp.competition.end}</span>
-                    </Navbar.Brand>
-                </Navbar.Collapse>
+					<Nav.Item key="sspot" style={{paddingTop:0,paddingBottom:0}}>
+						<Nav.Link href={comp.competition.mainwebsite}  className="d-md-none">
+							{shortName}<Nbsp/><Icon type='external-link'/>
+						</Nav.Link>
+						<Nav.Link href={comp.competition.mainwebsite}  className="d-none d-md-block"  style={{paddingTop:0,paddingBottom:0}}>
+							{comp.competition.name}<div style={{fontSize: '70%'}}>{comp.competition.start} to {comp.competition.end}<Icon type='external-link'/> </div>
+						</Nav.Link>
+					</Nav.Item>
+					<Nav.Item key="settings">
+						<Nav.Link href='#' key='navlinksettings' eventKey='settings'
+								  onClick={() => { Router.push('/settings', undefined, {shallow:true}); }}>
+							<Icon type='cog'/>
+						</Nav.Link>
+					</Nav.Item>
+				</Nav>
             </Navbar>
             <br style={{clear:'both'}}/>
         </>
