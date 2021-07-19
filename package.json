@@ -34,6 +34,7 @@
         "lodash.mapvalues": ">=4.6.0",
         "lodash.maxby": ">=4.6.0",
         "lodash.pick": ">=4.4.0",
+        "lodash.reduce": "^4.6.0",
         "lodash.remove": ">=4.7.0",
         "lodash.sortby": ">=4.7.0",
         "lodash.sumby": ">=4.6.0",
