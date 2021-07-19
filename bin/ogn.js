@@ -788,8 +788,8 @@ function checkAssociation( flarmId, packet, jPoint, glider ) {
 					}
 				}
 			}
-			
-			console.log( `${flarmId}:  found in ddb, matched to ${glider.compno} (${glider.className})`);
+
+			console.log( `${flarmId}:  found in ddb, matched to ${match.compno} (${match.className})`);
 			
 			// Link the two together
 			match.trackerid = flarmId;
