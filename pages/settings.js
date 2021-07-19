@@ -169,6 +169,14 @@ function SettingsPage( { options, setOptions, tz } ) {
 								</ButtonGroup>
 							</Col>
 						</Row>
+						<Row>
+							<Col sm={3}>
+								<Nbsp/>
+							</Col>
+							<Col>
+								(You can toggle through different times by clicking on the time next to the Rain Viewer credit on the main map)
+							</Col>
+						</Row>
 
 					</Col>
                 </Row>

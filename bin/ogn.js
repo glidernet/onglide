@@ -712,7 +712,7 @@ function calculateVario( glider, altitude, timestamp ) {
     let total = altitude - varray[0].a;
     let elapsed = timestamp - varray[0].t;
 
-    return glider.lastvario = [ loss, gain, total, Math.floor(total/elapsed), elapsed, minmax.m, minmax.x ];
+    return glider.lastvario = [ loss, gain, total, Math.floor(total*10/elapsed)/10, elapsed, minmax.m, minmax.x ];
 }
 
 
