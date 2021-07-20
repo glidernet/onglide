@@ -429,6 +429,8 @@ async function process_class_task (classid, className, date, day_number, day_inf
 			.query( (r,ro) => { const taskid = ro[1].insertId;
 								return ['DELETE FROM tasks WHERE class=? AND taskid != ? AND datecode = todcode(?)', [classid,taskid,date]]; })
 			.query( (r,ro) => { const taskid = ro[1].insertId;
+								return ['DELETE FROM taskleg WHERE class=? AND taskid != ? AND datecode = todcode(?)', [classid,taskid,date]]; })
+			.query( (r,ro) => { const taskid = ro[1].insertId;
 								return ['UPDATE tasks SET task="A", flown="Y" WHERE class=? AND taskid = ?',[classid,taskid]]; })
 
 		// redo the distance calculation, including calculating handicaps
