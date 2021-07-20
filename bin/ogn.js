@@ -521,6 +521,7 @@ async function sendScores() {
                     if( (now - glider.lastTime) < 60 && 'lastvario' in glider ) {
                         [ p.lossXsecond,
                           p.gainXsecond,
+                          p.total,
                           p.average,
                           p.Xperiod,
                           p.min,
