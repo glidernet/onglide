@@ -8,6 +8,7 @@
     "scripts": {
         "build": "next build",
         "soaringspot": "bin/soaringspot.js",
+        "rst": "bin/rst.js",
         "setup": "bin/install.js",
         "ogn": "bin/ogn.js"
     },
@@ -51,6 +52,7 @@
         "serverless-mysql": ">=1.5.4",
         "sql-template-strings": ">=2.2.2",
         "swr": ">=0.2.3",
+        "tabletojson": "^2.0.7",
         "tx2": "^1.0.4",
         "ws": ">=7.3"
     }
