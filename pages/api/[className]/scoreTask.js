@@ -353,13 +353,13 @@ function calculateVario( tracker, state, points ) {
         tracker.lossXsecond = Math.round(tracker.lossXsecond*10)/10;
         // 9.87 = feet/minute to knots
         // 60 = m/minute to m/sec
-        tracker.averager = Math.round(((tracker.gainXsecond + tracker.lossXsecond) / tracker.Xperiod )*10)/10;
+        tracker.average = Math.round(((tracker.gainXsecond + tracker.lossXsecond) / tracker.Xperiod )*10)/10;
         //        tracker.averager = Math.round(((tracker.gainXsecond + tracker.lossXsecond) / tracker.Xperiod) * 60 / (map.og_units?9.87:6))/10;
     }
     else {
         tracker.gainXsecond = undefined;
         tracker.lossXsecond = undefined;
-        tracker.averager = undefined;
+        tracker.average = undefined;
         tracker.Xperiod = undefined;
     }
 }
