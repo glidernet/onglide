@@ -102,7 +102,7 @@ async function rst(deep = false) {
 
 	let hcaps = {};
 	
-	fetch( 'http://www.rst-online.se/RSTmain.php?main=excup&cmd=list&excup=list&sub=EX' )
+	fetch( keys.secret )
 		.then( res => res.text() )
 		.then( body => {
 			var dom = htmlparser.parseDocument(body);
