@@ -336,7 +336,7 @@ function calculateVario( tracker, state, points ) {
                 tracker.gainXsecond += diff;
             }
             else {
-                tracker.lossXsecond += diff;
+                tracker.lossXsecond -= diff;
             }
             tracker.Xperiod = firstTime - points[p+1].t;
         }
