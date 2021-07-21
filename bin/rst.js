@@ -30,7 +30,7 @@ const { capturePossibleLaunchLanding } = require('../lib/launchlanding.js');
 
 
 const _groupby = require('lodash.groupby');
-const _forEach = require('lodash.forEach');
+const _foreach = require('lodash.foreach');
 const _reduce = require('lodash.reduce');
 
 // DB access
@@ -621,7 +621,7 @@ async function process_class_results (classid, className, date, day_number, resu
 			
 			console.log( `${date} ${classid}: ${Object.keys(matches).length} matches found` );
 			
-			_forEach(matches, (mx) => {
+			_foreach(matches, (mx) => {
 				const m = mx[0];
 
 				// Get compno and make sure it's valid
