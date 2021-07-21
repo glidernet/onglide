@@ -135,7 +135,7 @@ async function main() {
     let parser = new aprsParser();
 
     // And start our websocket server
-    const wss = new WebSocket.Server({ port: 8080 });
+    const wss = new WebSocket.Server({ port: (config.WEBSOCKET_PORT||8080) });
 
     // What to do when a client connects
     wss.on( 'connection', (ws,req) => {
@@ -858,7 +858,7 @@ async function startStatusServer() {
                           ${connection.aprsc??'unknown'}
                      </body></html>`);
         res.end(); //end the response
-    }).listen(8081);
+    }).listen(config.STATUS_SERVER_PORT||8081);
 }
 
 // Handle DEM
