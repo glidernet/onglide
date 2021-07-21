@@ -596,6 +596,13 @@ function processPacket( packet ) {
 		glider.lastPoint = jPoint;
 		glider.lastAlt = packet.altitude;
         glider.lastTime = packet.timestamp;
+
+		if( glider.lastTime - packet.timestamp > 1800 ) {
+			console.log( `${glider.compno} : VERY late flarm packet received, ${(glider.lastTime - packet.timestamp)/60}  minutes earlier than latest packet received for the glider, ignoring` );
+			console.log( packet );
+			return;
+		}
+		
     }
 
     // Where are we broadcasting this data
@@ -619,27 +626,27 @@ function processPacket( packet ) {
         channel.launching = true;
     }
 
-    let message = {
-        g: glider.compno,
-        lat: Math.floor(packet.latitude*100000)/100000,
-        lng: Math.floor(packet.longitude*100000)/100000,
-        alt: Math.floor(packet.altitude),
-        at: packet.timestamp,
-        t: timeToText(packet.timestamp),
-        v: calculateVario( glider, packet.altitude, packet.timestamp ).join(','),
-    };
-
-
     // Enrich with elevation and send to everybody, this is async
     withElevation( packet.latitude, packet.longitude,
                    async (gl) => {
-                       message.agl = Math.round(Math.max(packet.altitude-gl,0));
-					   glider.agl = message.agl;
+					   glider.agl = Math.round(Math.max(packet.altitude-gl,0));
 					   glider.altitude = packet.altitude;
                        // console.log( `${glider.compno}: ${packet.latitude},${packet.longitude} - EL: ${agl}, A/C ${packet.altitude} ... ${packet.altitude-agl}` );
 
                        // If the packet isn't delayed then we should send it out over our websocket
                        if( ! islate ) {
+
+						   let message = {
+							   g: glider.compno,
+							   lat: Math.floor(packet.latitude*100000)/100000,
+							   lng: Math.floor(packet.longitude*100000)/100000,
+							   alt: Math.floor(packet.altitude),
+							   agl: glider.agl,
+							   at: packet.timestamp,
+							   t: timeToText(packet.timestamp),
+							   v: calculateVario( glider, packet.altitude, packet.timestamp ).join(','),
+						   };
+
 
                            // Prepare to send
                            const jsonMsg = JSON.stringify( message );
@@ -659,7 +666,7 @@ function processPacket( packet ) {
 					   if( ! readOnly ) {
 						   mysql.query( escape`INSERT IGNORE INTO trackpoints (class,datecode,compno,lat,lng,altitude,agl,t)
                                                   VALUES ( ${glider.className}, ${channel.datecode}, ${glider.compno},
-                                                           ${packet.latitude}, ${packet.longitude}, ${packet.altitude}, ${message.agl}, ${packet.timestamp} )` );
+                                                           ${packet.latitude}, ${packet.longitude}, ${packet.altitude}, ${glider.agl}, ${packet.timestamp} )` );
 					   }
                    });
 
@@ -680,6 +687,10 @@ function calculateVario( glider, altitude, timestamp ) {
     let varray = glider.vario;
     let minmax = glider.minmax;
 
+	if( Math.abs(altitude - varray[0].a) / (timestamp - varray[0].timestamp) > 40 ) {
+		console.log( glider.compno, "ignoring vario point as change > 40m/s" );
+	}
+
     // add the new point, we need history to calculate a moving
     // average
     varray.push( { t: timestamp, a: altitude } );
@@ -687,8 +698,8 @@ function calculateVario( glider, altitude, timestamp ) {
     if( altitude < minmax.m ) minmax.m = altitude;
     if( altitude > minmax.x ) minmax.x = altitude;
 
-    // if the period is longer than 60 seconds or 40 points then drop the beginning one
-    if( varray[0].t < timestamp - 60 || varray.length > 41 ) {
+    // if the period is longer than 40 seconds or 40 points then drop the beginning one
+	while( varray.length > 41 || (varray.length > 1 && varray[0].t < timestamp - 40)) {
         varray.shift();
     }
 
@@ -699,15 +710,13 @@ function calculateVario( glider, altitude, timestamp ) {
     // Figure out the gain and loss components over the time
     let loss = 0;
     let gain = 0;
-    let previousAlt = -1;
-    varray.forEach( (p) => {
-        if( previousAlt && previousAlt > 0 ) {
-            let diff = p.a - previousAlt;
-            if( diff > 0 ) gain += diff;
-            if( diff < 0 ) loss -= diff;
-        }
+    let previousAlt = varray[0].a;
+    for( const p of varray ) {
+        let diff = p.a - previousAlt;
+        if( diff > 0 ) gain += diff;
+        if( diff < 0 ) loss -= diff;
         previousAlt = p.a;
-    });
+    }
 
     // And the overall amounts
     let total = altitude - varray[0].a;
@@ -749,7 +758,7 @@ function checkAssociation( flarmId, packet, jPoint, glider ) {
         if( ddbf && (ddbf.cn != "" || ddbf.greg != "")) {
 
             // Find all our gliders that could match, may be 0, 1 or possibly 2
-            const matches = _filter( gliders, (x) => { return ((!x.duplicate) && ddbf.cn == x.compno) || ddbf.registration == x.greg } );
+            const matches = _filter( gliders, (x) => { return ((!x.duplicate) && ddbf.cn == x.compno) || (ddbf.registration == x.greg && (x.greg||'') != '')} );
 
             if( ! Object.keys(matches).length ) {
                 unknownTrackers[flarmId].message = `Not in competition ${ddbf.cn} (${ddbf.registration}) - ${ddbf.aircraft_model}`;
@@ -776,17 +785,18 @@ function checkAssociation( flarmId, packet, jPoint, glider ) {
 
 				// New compno then we need to break old association
 				else {
-					console.log( `${flarmId}:  flarm change, previously matched to ${glider.compno} (${glider.className})`);	
-					unknownTrackers[flarmId].matched = `flarm change: ${match.compno} ${match.className} (${match.registration}) previously ${glider.compno}`;
-					glider.trackerid = 'unknown';
+					console.log( `${flarmId}:  flarm mismatch, previously matched to ${glider.compno} (${glider.className})`);
+					return;
+					// unknownTrackers[flarmId].matched = `flarm change: ${match.compno} ${match.className} (${match.registration}) previously ${glider.compno}`;
+					// glider.trackerid = 'unknown';
 					
-					if( ! readOnly ) {
-						mysql.transaction()
-							.query( escape`UPDATE tracker SET trackerid = 'unknown' WHERE
-                                          compno = ${glider.compno} AND class = ${glider.className} limit 1` )
-							.query( escape`INSERT INTO trackerhistory (compno,changed,flarmid,launchtime,method) VALUES ( ${match.compno}, now(), 'chgreg', now(), "ognddb" )`)
-							.commit();
-					}
+					// if( ! readOnly ) {
+					// 	mysql.transaction()
+					// 		.query( escape`UPDATE tracker SET trackerid = 'unknown' WHERE
+                    //                       compno = ${glider.compno} AND class = ${glider.className} limit 1` )
+					// 		.query( escape`INSERT INTO trackerhistory (compno,changed,flarmid,launchtime,method) VALUES ( ${match.compno}, now(), 'chgreg', now(), "ognddb" )`)
+					// 		.commit();
+					// }
 				}
 			}
 
