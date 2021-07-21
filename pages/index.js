@@ -97,8 +97,6 @@ function CombinePage( props ) {
     const router = useRouter()
     let { className } = router.query;
     if (!className) {
-        console.log( "no class!" );
-        console.log(router.query);
         className = props.defaultClass;
     }
 
