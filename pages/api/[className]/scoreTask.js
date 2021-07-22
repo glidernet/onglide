@@ -177,6 +177,10 @@ export default async function scoreTask( req, res ) {
 
 		var tracker = trackers[compno];
 
+		// Last point for zooming
+		tracker.lat = ppoints[0]?.lat;
+		tracker.lng = ppoints[0]?.lng;
+
         _foreach( ppoints, (p) => {
             p.ll = new LatLong( p.lat, p.lng );
             p.geoJSON = point([p.lng,p.lat]);
