@@ -72,7 +72,7 @@ export default async function geoTracks( req, res) {
 	const pilot = collection[key];
 	if( pilot && pilot.coordinates ) {
 	    trackJSON.features = [].concat( trackJSON.features,
-					    [{ 'type': 'Feature',
+					    [{ 'type': 'Feature', properties: { 'c': key },
 					       geometry: pilot }] );
 	}
     });

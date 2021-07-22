@@ -119,27 +119,20 @@ export default async function scoreTask( req, res ) {
              WHERE datecode=${task.contestday.datecode} AND class=${className}
             ORDER BY t DESC`);
 
-    /*    if( ! rawpoints || rawpoints.length == 0 ) {
-          console.log( "no tracking yet" );
-          res.status(200)
-          .json({pilots:{}});
-          return;
-          } */
-
     // We need to make sure our cache is valid - this is both to confirm it hasn't
     // gone back in time more than our check interval (for running sample site)
     // and that the taskid hasn't changed (eg from a new contest day)
     const cacheTScheck = await kv.get('cacheTScheck');
     const cacheTaskId = await kv.get('cacheTaskId');
-    //    console.log( className+' Cache Check: '+cacheTScheck+' vs '+rawpoints[0].t+', Cache Task Id:'+cacheTaskId+', task.id:'+task.task.taskid);
-    if( (cacheTScheck && cacheTScheck > rawpoints[0].t) || (cacheTaskId && cacheTaskId != task.task.taskid) ) {
+	const newestPoint = (rawpoints[0]?.t||0);
+    if( (cacheTScheck && cacheTScheck > newestPoint) || (cacheTaskId && cacheTaskId != task.task.taskid) ) {
         kv.clear();
         console.log(className + " stale cache, fail request");
         res.status(503)
             .json({error:'stale cache'});
         return;
     }
-    kv.set('cacheTScheck',(rawpoints[0]&&rawpoints[0].t)||0);
+    kv.set('cacheTScheck',newestPoint);
     kv.set('cacheTaskId',task.task.taskid);
 
     // Group them by comp number, this is quicker than multiple sub queries from the DB
@@ -176,6 +169,10 @@ export default async function scoreTask( req, res ) {
         }
 
 		var tracker = trackers[compno];
+
+		// Last point for zooming
+		tracker.lat = ppoints[0]?.lat;
+		tracker.lng = ppoints[0]?.lng;
 
         _foreach( ppoints, (p) => {
             p.ll = new LatLong( p.lat, p.lng );
