@@ -11,7 +11,10 @@ import { useRouter } from 'next/router'
 import _groupby  from 'lodash.groupby'
 import _mapvalues  from 'lodash.mapvalues'
 
+import { useKVs } from '../../../lib/kv.js';
+let kvs = useKVs();
 
+const historyLength = 600;
 
 export default async function taskHandler( req, res ) {
     const {
@@ -31,11 +34,15 @@ export default async function taskHandler( req, res ) {
       WHERE cs.class = ${className}
     `))[0].datecode;
 
+	let trackers = await kvs[className]?.get('trackers');
+	const start = (trackers?.[compno]?.utcstart)||0;
+	console.log( compno, start, trackers?.[compno] );
+
     // Get the points
     let points = await db.query(escape`
             SELECT lat, lng, t
               FROM trackpoints
-             WHERE datecode=${datecode} AND compno=${compno} AND class=${className}
+             WHERE datecode=${datecode} AND compno=${compno} AND class=${className} AND t > ${start}
              ORDER BY t DESC`);
 
     let trackJSON = {
