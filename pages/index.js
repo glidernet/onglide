@@ -111,6 +111,16 @@ function CombinePage( props ) {
 
     // And keep track of who is selected
     const [ selectedCompno, setSelectedCompno ] = useState();
+
+	// What the map is looking at
+    const [viewport, setViewport] = useState({
+        latitude: props.lat,
+        longitude: props.lng,
+        zoom: 8,
+        bearing: 0,
+        pitch: 0
+    });
+	
 	// Get our options from _app.js
 	const options = props.options;
 
@@ -143,6 +153,15 @@ function CombinePage( props ) {
     // Make sure we have the class object
     const selectedClass = _find( comp.classes,{'class': className} );
 
+	function setCompno(cn) {
+		setSelectedCompno(cn);
+		if(cn&&pilots[cn]) {
+			let pilot = pilots[cn];
+			pilot.follow = true;
+			setViewport( {...viewport, latitude:pilot.lat, longitude:pilot.lng} );
+		}
+	}
+
 
     // And the pilot object
     const selectedPilot = pilots ? pilots[selectedCompno] : undefined;
@@ -157,17 +176,23 @@ function CombinePage( props ) {
             <Container fluid>
                 <Row>
                     <Col sm={7}>
-                        <TaskMap vc={className} datecode={selectedClass?selectedClass.datecode:'07C'} selectedPilot={selectedPilot}
-                                 mapRef={mapRef} pilots={pilots} lat={props.lat} lng={props.lng} options={options} setOptions={props.setOptions} tz={props.tz}/>
+                        <TaskMap vc={className} datecode={selectedClass?selectedClass.datecode:'07C'} selectedPilot={selectedPilot} setSelectedCompno={(x)=>setSelectedCompno(x)}
+								 mapRef={mapRef}
+								 pilots={pilots} options={options} setOptions={props.setOptions}
+								 tz={props.tz}
+								 viewport={viewport} setViewport={setViewport}/>
                         <OgnFeed vc={className} datecode={selectedClass?selectedClass.datecode:'07C'} selectedPilot={selectedPilot}
-                                 pilots={pilots} mutatePilots={mutate} mapRef={mapRef} tz={props.tz}/>
+                                 pilots={pilots} mutatePilots={mutate} mapRef={mapRef} tz={props.tz} viewport={viewport} setViewport={setViewport}/>
                     </Col>
                     <Col>
                         <TaskDetails vc={className}/>
                         {isPLoading &&<><Icon type="plane" spin={true}/> Loading pilots...</>
                         }
                         {pilots &&
-                         <PilotList vc={className} pilots={pilots} selectedPilot={selectedPilot} setSelectedCompno={(x)=>setSelectedCompno(x)} options={options}/>
+                         <PilotList vc={className} pilots={pilots}
+									selectedPilot={selectedPilot}
+									setSelectedCompno={(x)=>setCompno(x)}
+									options={options} setViewport={setViewport}/>
                         }
                     </Col>
                 </Row>
