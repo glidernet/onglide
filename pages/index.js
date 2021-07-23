@@ -158,7 +158,9 @@ function CombinePage( props ) {
 		if(cn&&pilots[cn]) {
 			let pilot = pilots[cn];
 			pilot.follow = true;
-			setViewport( {...viewport, latitude:pilot.lat, longitude:pilot.lng} );
+			if( pilot.lat && pilot.lng ) {
+				setViewport( {...viewport, latitude:pilot.lat, longitude:pilot.lng} );
+			}
 		}
 	}
 
