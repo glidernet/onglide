@@ -528,7 +528,7 @@ async function process_class_results (classid, className, date, day_number, resu
 			if( d == undefined ) {
 				return undefined;
 			}
-			let x = new Date();
+			let x = new Date(date);
 			const p = d.match(/([0-9]{2}):([0-9]{2}):([0-9]{2})/);
 			x.setHours( p[1] );
 			x.setMinutes( p[2] );
@@ -546,32 +546,33 @@ async function process_class_results (classid, className, date, day_number, resu
 
         const start = row.Start ? (cDate(row.Start).getTime()/1000) : 0;
         const finish = row.Tid != '' ? (cDate(row['M�l']).getTime()/1000) : 0;
-        const duration = finish && start ? cHour(row.Tid) : 0;
+        const duration = (finish && start) ? (finish - start) : 0 ;
 
 //		console.log( pilot, start, finish, duration );
 		
             // for the bga scoring script that includes handicapped in the decimals
             // it's a special case, but could be used by other competitions if they want to
-        const hcaps = parseFloat( row.Hastighet );
+        const actuals = parseFloat( row.Hastighet );
 		const actuald = parseFloat( row.Distans );
 		 
         let scoredvals = {};
-		scoredvals.as = duration ? actuald/duration : 0;
-        scoredvals.ad = actuald
-        scoredvals.hs = duration ? actuald/(handicap/100)/duration : 0;
+		scoredvals.as = actuals;
+        scoredvals.ad = actuald;
+        scoredvals.hs = actuals/(handicap/100);
         scoredvals.hd = actuald/(handicap/100);
-//		console.log( scoredvals, hcaps, actuald );
+//		console.log( pilot, date, scoredvals, actuals, actuald, duration );
 
 		const finished = parseFloat(row.Hastighet) > 0;
-
+		
         // If there is data from scoring then process it into the database
+		// NOTE THE TIMES ARE UTC not local so we to convert back to local
         if( row['M�l'] != '' || finished ) {
             const r = (await mysql.query( escape`
                            UPDATE pilotresult
                            SET
-                             start=TIME(COALESCE(${row.Start},start)),
-                             finish=TIME(COALESCE(${row['M�l']},finish)),
-                             duration=COALESCE(TIMEDIFF(${row['M�l']},${row.Start}),duration),
+		                     start=TIME(from_unixtime(${start})),
+		                     finish=TIME(from_unixtime(${finish})),
+                             duration=TIME(from_unixtime(${duration})),
                              scoredstatus= ${finished > 0 ? 'F' : 'H'},
                              status = (CASE WHEN ((status = "-" or status = "S" or status="G") and ${finished} != "") THEN "F"
                                         WHEN   ((status = "-" or status = "S" or status="G") and ${row['M�l']} != "") THEN "H"
