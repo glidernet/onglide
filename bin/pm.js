@@ -26,11 +26,6 @@ async function main() {
         console.log( "New install: no configuration found, or script not being run in the root directory" );
         process.exit(1);
     }
-	
-	if( config.MYSQL_DATABASE && config.MYSQL_DATABASE != process.argv[0] ) {
-		console.log( "you have a different database in .env.local, if you want to run multiples from same config file you should remove this" );
-		process.exit(1);
-	}
 
 	if( ! pm2.connect(()=>{ console.log("connected to pm2"); }) ) {
 		console.log( "Unable to connect to pm2" );
@@ -60,6 +55,11 @@ async function main() {
 			fe = true;
 			console.log( "front end only, no scores" );
 			continue;
+		}
+		
+		if( config.MYSQL_DATABASE && config.MYSQL_DATABASE != db ) {
+			console.log( "you have a different database in .env.local, if you want to run multiples from same config file you should remove this" );
+			process.exit(1);
 		}
 
 		// Connect to the database
