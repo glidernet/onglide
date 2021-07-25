@@ -530,9 +530,9 @@ async function process_class_results (classid, className, date, day_number, resu
 			}
 			let x = new Date(date);
 			const p = d.match(/([0-9]{2}):([0-9]{2}):([0-9]{2})/);
-			x.setHours( p[1] );
-			x.setMinutes( p[2] );
-			x.setSeconds( p[3] );
+			x.setUTCHours( p[1] );
+			x.setUTCMinutes( p[2] );
+			x.setUTCSeconds( p[3] );
 			return x;
 		}
 
@@ -570,8 +570,8 @@ async function process_class_results (classid, className, date, day_number, resu
             const r = (await mysql.query( escape`
                            UPDATE pilotresult
                            SET
-		                     start=TIME(from_unixtime(${start})),
-		                     finish=TIME(from_unixtime(${finish})),
+		                     start=TIME(from_unixtime(${start}+(SELECT tzoffset FROM competition))),
+		                     finish=TIME(from_unixtime(${finish}+(SELECT tzoffset FROM competition))),
                              duration=TIME(from_unixtime(${duration})),
                              scoredstatus= ${finished > 0 ? 'F' : 'H'},
                              status = (CASE WHEN ((status = "-" or status = "S" or status="G") and ${finished} != "") THEN "F"
