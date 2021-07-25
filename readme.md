@@ -64,6 +64,19 @@ pm2 will automatically restart the processes if they fail
 
 - start webserver
 
+## RST tracking
+
+Instead of using SoaringSpot as the backend it's possible to use RST Online as well. 
+
+- run the normal installation program
+- select RST for scoring system (see steps above) and then ensure the URL provided takes you to the page on RST that lists the competition. Default is "Övriga tävlingar" but it should also work with the HDI Safe Skies pages as well by changing the URL
+- ensure that the contest name matches the prefix of the name, text after the name is assumed to be the contest class
+
+eg: "DM Herrljunga 2021 18-Meter" select "DM Herrljunga 2021" as the contest name, 18-Meter will become the contest class
+
+- run
+
+
 ## Troubleshooting
 
 Default configuration configures url /wsstatus that allows you to see what is happening with the OGN feed on the server end
