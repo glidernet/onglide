@@ -5,6 +5,11 @@
 //
 const pm2 = require('pm2')
 
+const util = require('util');
+//const execFile = util.promisify(require('child_process').execFile);
+const execFile = require('child_process').execFile;
+const exec = require('child_process').exec;
+
 
 // Get data from database
 const escape = require('sql-template-strings')
@@ -53,7 +58,7 @@ async function main() {
 
 		if( db == '--fe' ) {
 			fe = true;
-			console.log( "front end only, no scores" );
+			console.log( "front end only, no score fetching process" );
 			continue;
 		}
 		
@@ -91,6 +96,7 @@ async function main() {
 
 		const environment = {
 			'MYSQL_DATABASE': db,
+			SHORT_NAME: domain,
 			NEXT_PUBLIC_SITEURL: keys.domain,
 			NEXT_PUBLIC_WEBSOCKET_HOST: keys.domain,
 			API_HOSTNAME: (config.API_HOSTNAME.slice(0,config.API_HOSTNAME.indexOf(":"))||config.API_HOSTNAME) + ':' + (3000+keys.portoffset),
@@ -100,8 +106,8 @@ async function main() {
 
 		if( localhost ) {
 			console.log( '  configuring for localhost usage based on NEXT_PUBLIC_SITEURL in .env.local' );
-			environment.NEXT_PUBLIC_SITEURL += ':' + (3000+keys.portoffset);
-			environment.NEXT_PUBLIC_WEBSOCKET_HOST += ':' + (8000+keys.portoffset);
+			environment.NEXT_PUBLIC_SITEURL = 'localhost:' + (3000+keys.portoffset);
+			environment.NEXT_PUBLIC_WEBSOCKET_HOST = 'localhost:' + (8000+keys.portoffset);
 		}
 			
 		console.log( `${domain} [${db}]: www ${3000+keys.portoffset}, api ${environment.API_HOSTNAME}, ws ${environment.WEBSOCKET_PORT}` );
@@ -112,7 +118,6 @@ async function main() {
 				pm2.delete( domain+"_scoring" );
 				pm2.delete( domain+"_ogn" );
 				pm2.delete( domain+"_next" );
-				pm2.delete( domain+"_build" );
 			}
 			else {
 				console.log( "starting" );
@@ -146,36 +151,46 @@ async function main() {
 					autorestart: true,
 					log_date_format: "YYYY-MM-DD HH:mm:ss Z",
 				});
-				
-				await pm2.start( {
-					script: "./node_modules/.bin/next",
-					name: domain+"_next",
-					args: (dev ? "dev -p " : "start -p ")+(3000+keys.portoffset), 
-					env: environment,
-					restart_delay: 30000, // 30 seconds
-					max_restarts: 30,
-					autorestart: true,
-					log_date_format: "YYYY-MM-DD HH:mm:ss Z",
-				});
 
-				if( ! dev ) {
-					await pm2.start( {
+				function startNext() {
+					pm2.start( {
 						script: "./node_modules/.bin/next",
-						name: domain+"_build",
-						args: "build",
+						name: domain+"_next",
+						args: (dev ? "dev -p " : "start -p ")+(3000+keys.portoffset), 
 						env: environment,
-						restart_delay: 12*3600*1000, // 12 hours
+						restart_delay: 30000, // 30 seconds
 						max_restarts: 30,
 						autorestart: true,
 						log_date_format: "YYYY-MM-DD HH:mm:ss Z",
-					});
+					}, () => { console.log( "next started" ); process.exit() } );
 				}
-				console.log( "done starting" );
+
+				
+				if( ! dev ) {
+					nextBuild( environment, startNext );
+				}
+				else {
+					startNext();
+				}
 			}
 		}
 	}
 //	pm2.disconnect();
 //	process.exit();
+}
+
+async function nextBuild( env, cb ) {
+	console.log( "nextBuild" );
+	execFile('./node_modules/.bin/next', ['build'], {env: {...process.env,...env}}, (error, stdout, stderr) => {
+		if (error) {
+			throw error;
+		}
+		console.log("o:",stdout);
+		console.log("e:",stderr);
+
+		cb();
+	} );
+
 }
 
 
