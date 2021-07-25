@@ -54,12 +54,10 @@ async function main() {
 
     mysql.config({
         host: config.MYSQL_HOST,
-        database: config.MYSQL_DATABASE,
+        database: config.MYSQL_DATABASE||process.env.MYSQL_DATABASE,
         user: config.MYSQL_USER,
         password: config.MYSQL_PASSWORD
     });
-
-	console.log(config);
 
 	// Now get data from soaringspot
     soaringSpot();
@@ -86,7 +84,7 @@ async function soaringSpot(deep = false) {
     // Get the soaring spot keys from database
     let keys = (await mysql.query(escape`
               SELECT *
-                FROM soaringspotkey`))[0];
+                FROM scoringsource where type='soaringspotkey'`))[0];
 
     if( ! keys || ! keys.client_id || ! keys.secret ) {
         console.log( 'no soaringspot keys configured' );

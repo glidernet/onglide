@@ -363,15 +363,19 @@ CREATE TABLE `pilots` (
 -- Table structure for table `soaringspotkey`
 --
 
-DROP TABLE IF EXISTS `soaringspotkey`;
+DROP TABLE IF EXISTS `scoringsource`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `soaringspotkey` (
-  `client_id` char(120) NOT NULL,
-  `secret` char(120) NOT NULL,
+CREATE TABLE `scoringsource` (
+  `type` enum('soaringspotkey','soaringspotscrape','rst') DEFAULT 'soaringspotkey',
+  `url` text,
+  `client_id` char(120) DEFAULT NULL,
+  `secret` char(120) DEFAULT NULL,
   `contest_name` char(120) DEFAULT NULL,
   `overwrite` int(11) DEFAULT '0',
-  `actuals` int(11) DEFAULT '1'
+  `actuals` int(11) DEFAULT '1',
+  `portoffset` int(11) DEFAULT '0',
+  `domain` text
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

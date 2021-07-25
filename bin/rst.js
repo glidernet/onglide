@@ -91,7 +91,7 @@ async function rst(deep = false) {
 	// Get the soaring spot keys from database
     let keys = (await mysql.query(escape`
               SELECT *
-                FROM soaringspotkey`))[0];
+                FROM scoringsource where type='rst'`))[0];
 
     if( ! keys ) {
         console.log( 'no soaringspot keys configured' );
@@ -102,7 +102,7 @@ async function rst(deep = false) {
 
 	let hcaps = {};
 	
-	fetch( keys.secret )
+	fetch( keys.url )
 		.then( res => res.text() )
 		.then( body => {
 			var dom = htmlparser.parseDocument(body);

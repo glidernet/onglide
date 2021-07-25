@@ -99,14 +99,14 @@ async function main() {
 
     mysql.config({
         host: config.MYSQL_HOST,
-        database: config.MYSQL_DATABASE,
+        database: process.env.MYSQL_DATABASE,
         user: config.MYSQL_USER,
         password: config.MYSQL_PASSWORD,
         onError: (e) => { console.log(e); }
     });
 
     // Settings for connecting to the APRS server
-    const CALLSIGN = config.NEXT_PUBLIC_SITEURL;
+    const CALLSIGN = process.env.NEXT_PUBLIC_SITEURL;
     const PASSCODE = -1;
     const APRSSERVER = 'aprs.glidernet.org';
     const PORTNUMBER = 14580;
@@ -117,7 +117,7 @@ async function main() {
 
     const FILTER = `r/${location.lt}/${location.lg}/250`;
 
-	console.log( 'Onglide OGN handler', readOnly ? '(read only)' : '', config.NEXT_PUBLIC_SITEURL ); 
+	console.log( 'Onglide OGN handler', readOnly ? '(read only)' : '', process.env.NEXT_PUBLIC_SITEURL ); 
 
     // Set the altitude offset for launching, this will take time to return
     // so there is a period when location altitude will be wrong for launches
@@ -135,7 +135,7 @@ async function main() {
     let parser = new aprsParser();
 
     // And start our websocket server
-    const wss = new WebSocket.Server({ port: (config.WEBSOCKET_PORT||8080) });
+    const wss = new WebSocket.Server({ port: (process.env.WEBSOCKET_PORT||8080) });
 
     // What to do when a client connects
     wss.on( 'connection', (ws,req) => {
@@ -174,7 +174,7 @@ async function main() {
     // Handle a connect
     connection.on('connect', () => {
         connection.sendLine( connection.userLogin );
-        connection.sendLine(`# onglide ${CALLSIGN} ${config.NEXT_PUBLIC_WEBSOCKET_HOST}`);
+        connection.sendLine(`# onglide ${CALLSIGN} ${process.env.NEXT_PUBLIC_WEBSOCKET_HOST}`);
     });
 
     // Handle a data packet
@@ -209,7 +209,7 @@ async function main() {
     setInterval( function() {
 
         // Send APRS keep alive or we will get dumped
-        connection.sendLine(`# ${CALLSIGN} ${config.NEXT_PUBLIC_WEBSOCKET_HOST}`);
+        connection.sendLine(`# ${CALLSIGN} ${process.env.NEXT_PUBLIC_WEBSOCKET_HOST}`);
 
         // Now download the scores and punt them out so we can mutate them into the results
         sendScores();
@@ -473,7 +473,7 @@ async function sendScores() {
 
 
         // Fetch the scores for latest date
-        fetch( `http://${config.API_HOSTNAME}/api/${channel.className}/scoreTask`)
+        fetch( `http://${process.env.API_HOSTNAME}/api/${channel.className}/scoreTask`)
             .then(res => res.json())
             .then( (scores) => {
 
@@ -858,7 +858,7 @@ async function startStatusServer() {
                           ${connection.aprsc??'unknown'}
                      </body></html>`);
         res.end(); //end the response
-    }).listen(config.STATUS_SERVER_PORT||8081);
+    }).listen(process.env.STATUS_SERVER_PORT||8081);
 }
 
 // Handle DEM

@@ -102,41 +102,95 @@ async function main() {
 
 
     // Get the soaring spot keys, we need this to prompt for the keys
-    let sskeyresult = (await mysql.query( 'select client_id, secret, actuals from soaringspotkey' ));
+    let sskeyresult = (await mysql.query( 'select * from scoringsource' ));
     let sskey = sskeyresult[0];
     if( sskey === undefined ) {
-	sskey = { client_id: "", secret: "", actuals: 1 };
+		sskey = { type:'soaringspotkey', url:"", client_id: "", secret: "", actuals: 1 };
     }
-    console.log( "Soaring Spot config:" );
 
 
-    const ssquestions = [
-        {
-            // Database configuration
-            type: 'text',
-            name: 'ssclient',
-            message: 'API Client Key',
-            initial: sskey.client_id,
-        },
-        {
-            type: 'text',
-            name: 'sssecret',
-            message: 'API Secret',
-            initial: sskey.secret
-        },
+	const stquestions = [
         {
             type: 'select',
-            name: 'actuals',
-            message: 'Speed output in Scoring Script',
+            name: 'type',
+            message: 'Scoring Backend',
             choices: [
-                { title: 'UK Special', value: '-1' },
-                { title: 'Handicapped', value: '0' },
-                { title: 'Actuals', value: '1' },
+                { title: 'SoaringSpot API', value: 'soaringspotkey' },
+                { title: 'SoaringSpot Scraping', value: 'soaringspotscrape' },
+                { title: 'RST Online (Sweden)', value: 'rst' },
             ],
-            initial: (sskey.actuals+1),
+            initial: (sskey.type),
         }
     ];
 
+    console.log( "Soaring Spot config:" );
+    const stresponse = await prompts(stquestions, {onCancel});
+
+	let ssquestions;
+	if( stresponse.type == 'soaringspotkey' ) {
+		// SoaringSpot is client & key
+		ssquestions = [
+			{
+				// Database configuration
+				type: 'text',
+				name: 'ssclient',
+				message: 'API Client Key',
+				initial: sskey.client_id,
+			},
+			{
+				type: 'text',
+				name: 'sssecret',
+				message: 'API Secret',
+				initial: sskey.secret
+			},
+			{
+				type: 'select',
+				name: 'actuals',
+				message: 'Speed output in Scoring Script',
+				choices: [
+					{ title: 'UK Special', value: '-1' },
+					{ title: 'Handicapped', value: '0' },
+					{ title: 'Actuals', value: '1' },
+				],
+				initial: (sskey.actuals+1),
+			}
+		];
+	}
+	else if( stresponse.type == 'soaringspotscrape' ) {
+
+		// SoaringSpot is client & key
+		ssquestions = [
+			{
+				type: 'text',
+				name: 'ssurl',
+				message: '(UK English URL)',
+				initial: sskey.url,
+				validate: (v) => { return (!v || !v.match(/en_gb/)) ? `please enter URL and make sure it is the UK english version of it` : true }
+			},
+		];
+	}
+	else {
+		if( !(sskey.url?.length > 0) ) {
+			sskey.url = 'http://www.rst-online.se/RSTmain.php?main=excup&cmd=list&excup=list&sub=EX';
+		}
+
+		// RST only requires the URL
+		ssquestions = [
+			{
+				type: 'text',
+				name: 'ssurl',
+				message: 'RST URL',
+				initial: sskey.url
+			},
+			{
+				type: 'text',
+				name: 'sscontest_name',
+				message: 'Contest Name',
+				initial: sskey.contest_name
+			}
+		];
+	}
+		
     const ssresponse = await prompts(ssquestions, {onCancel});
 
     console.log( "\nWebsite config:" );
@@ -153,6 +207,12 @@ async function main() {
             message: 'API Host',
             initial: (undefined,v) => nE.API_HOSTNAME ? nE.API_HOSTNAME : v.url,
         },
+		{
+			type: 'number',
+			name: 'portoffset',
+			message: 'Port offset (multiple instances on a machine)',
+			initial: sskey.portoffset||0
+		},
         {
             type: 'text',
             name: 'wshost',
@@ -202,8 +262,9 @@ NEXT_SCORE_REFRESH_INTERVAL=60000
     console.log( "Updating Soaring Spot Keys" );
     // Update the database with the soaring spot key
     await mysql.transaction()
-        .query( 'DELETE FROM soaringspotkey' )
-        .query( escape`INSERT INTO soaringspotkey VALUES ( ${ssresponse.ssclient}, ${ssresponse.sssecret}, '', 1, ${ssresponse.actuals} )`)
+        .query( 'DELETE FROM scoringsource' )
+        .query( escape`INSERT INTO scoringsource VALUES ( ${stresponse.type}, ${ssresponse.url||''},
+                                   ${ssresponse.ssclient||''}, ${ssresponse.sssecret||''}, {$ssresponse.sscontest_name||''}, 1, ${ssresponse.actuals}, ${wsresponse.portoffset}, ${wsresponse.url} )`)
         .commit();
 
     console.log( "done" );
