@@ -486,10 +486,11 @@ DROP TABLE IF EXISTS `movements`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `movements` (
-  `action` char(10) NOT NULL,
-  `time` int(11) NOT NULL,
+  `action` char(10) NOT NULL 'launch/landing',
+  `time` int(11) NOT NULL COMMENT 'timestamp epoch',
   `id` char(40) NOT NULL,
   `type` enum('flarm','igc') DEFAULT NULL,
+  `datecode` char(3) DEFAULT NULL,
   PRIMARY KEY (`id`,`time`,`action`),
   KEY `action` (`action`,`type`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
