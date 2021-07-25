@@ -108,6 +108,7 @@ async function main() {
 		sskey = { type:'soaringspotkey', url:"", client_id: "", secret: "", actuals: 1 };
     }
 
+	const sstypemap = { 'soaringspotkey': 0, 'soaringspotscrape': 1, 'rst': 2 };
 
 	const stquestions = [
         {
@@ -115,19 +116,19 @@ async function main() {
             name: 'type',
             message: 'Scoring Backend',
             choices: [
-                { title: 'SoaringSpot API', value: 'soaringspotkey' },
-                { title: 'SoaringSpot Scraping', value: 'soaringspotscrape' },
-                { title: 'RST Online (Sweden)', value: 'rst' },
+                { title: 'SoaringSpot API', value: sstypemap['soaringspotkey'] },
+                { title: 'SoaringSpot Scraping', value: sstypemap['soaringspotscrape'] },
+                { title: 'RST Online (Sweden)', value: sstypemap['rst'] },
             ],
-            initial: (sskey.type),
+            initial: (sstypemap[sskey.type]),
         }
     ];
 
-    console.log( "Soaring Spot config:" );
+    console.log( "Scoring config:" );
     const stresponse = await prompts(stquestions, {onCancel});
 
 	let ssquestions;
-	if( stresponse.type == 'soaringspotkey' ) {
+	if( stresponse.type == sstypemap['soaringspotkey'] ) {
 		// SoaringSpot is client & key
 		ssquestions = [
 			{
@@ -156,7 +157,7 @@ async function main() {
 			}
 		];
 	}
-	else if( stresponse.type == 'soaringspotscrape' ) {
+	else if( stresponse.type == sstypemap['soaringspotscrape'] ) {
 
 		// SoaringSpot is client & key
 		ssquestions = [
@@ -250,6 +251,12 @@ NEXT_PUBLIC_SITEURL=${wsresponse.url}
 NEXT_SCORE_REFRESH_INTERVAL=60000
 `;
 
+	if( wsresponse.portoffset != 0 ) {
+		envFile += `WEBSOCKET_PORT=${8000+wsresponse.portoffset}
+STATUS_SERVER_PORT=${8100+wsresponse.portoffset}
+`;
+	}
+
     console.log( envFile );
 
     fs.renameSync( '.env.local', '.env.backup' );
@@ -263,8 +270,8 @@ NEXT_SCORE_REFRESH_INTERVAL=60000
     // Update the database with the soaring spot key
     await mysql.transaction()
         .query( 'DELETE FROM scoringsource' )
-        .query( escape`INSERT INTO scoringsource VALUES ( ${stresponse.type}, ${ssresponse.url||''},
-                                   ${ssresponse.ssclient||''}, ${ssresponse.sssecret||''}, {$ssresponse.sscontest_name||''}, 1, ${ssresponse.actuals}, ${wsresponse.portoffset}, ${wsresponse.url} )`)
+        .query( escape`INSERT INTO scoringsource VALUES ( ${Object.keys(sstypemap)[stresponse.type]}, ${ssresponse.url||''},
+                                   ${ssresponse.ssclient||''}, ${ssresponse.sssecret||''}, ${ssresponse.sscontest_name||''}, 1, ${ssresponse.actuals}, ${wsresponse.portoffset}, ${wsresponse.url} )`)
         .commit();
 
     console.log( "done" );
