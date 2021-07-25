@@ -91,8 +91,8 @@ async function main() {
 
 		const environment = {
 			'MYSQL_DATABASE': db,
-			NEXT_PUBLIC_SITEURL: domain,
-			NEXT_PUBLIC_WEBSOCKET_HOST: domain,
+			NEXT_PUBLIC_SITEURL: keys.domain,
+			NEXT_PUBLIC_WEBSOCKET_HOST: keys.domain,
 			API_HOSTNAME: (config.API_HOSTNAME.slice(0,config.API_HOSTNAME.indexOf(":"))||config.API_HOSTNAME) + ':' + (3000+keys.portoffset),
 			WEBSOCKET_PORT: 8000+keys.portoffset,
 			STATUS_SERVER_PORT: 8100+keys.portoffset
@@ -125,7 +125,7 @@ async function main() {
 						console.log( `  using scoring script ${scoringScript}` );
 						await pm2.start( {
 							script: 'bin/soaringspot.js',
-							name: domain+"_sscoring",
+							name: domain+"_scoring",
 							env: environment,
 							restart_delay: 100,
 							max_restarts: 10,
