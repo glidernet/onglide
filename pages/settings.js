@@ -2,6 +2,7 @@ import next from 'next'
 import dynamic from 'next/dynamic'
 import Head from 'next/head'
 import Router from 'next/router'
+import Link from 'next/link'
 
 // What do we need to render the bootstrap part of the page
 import Container from 'react-bootstrap/Container';
@@ -112,6 +113,7 @@ function SettingsPage( { options, setOptions, tz } ) {
                 <IncludeJavascript/>
             </Head>
             <Menu comp={comp}/>
+			<br clear="both"/>
             <Container fluid>
                 <Row>
 					<Col sm={7}>
@@ -177,7 +179,23 @@ function SettingsPage( { options, setOptions, tz } ) {
 								(You can toggle through different times by clicking on the time next to the Rain Viewer credit on the main map)
 							</Col>
 						</Row>
-
+						<hr/>
+						<Row>
+							<Col sm={3}>
+								<h5>Info</h5>
+							</Col>
+							<Col>
+								If you would like to use it for your competition please email me at melissa-onglide@littlebluecar.co.uk with your SoaringSpot API keys
+								<br/>
+								I normally ask for some commitment to help get more women into gliding.
+								<hr/>
+								Pilot images are taken from the FAI ranking list (<Link href="https://igcrankings.fai.org">http://igcrankings.fai.org</Link>) and require the FAI number to be correctly entered into the competition.<br/>
+								<hr/>
+							Flarm IDs are matched based on launches from configured airfield coordinates and the <Link href="https://ddb.glidernet.org">OGN DDB</Link>, you can add your glider there if it isn't matched. The IGC files will also be analysed to see if a launch/landing time match can be made. This happens after the trace is available from scoring so may take a few days to pick up gliders.
+								<hr/>
+								Onglide is an open source project (<Link href="http://igcrankings.fai.org">https://github.com/glidernet/onglide</Link>) written in Javascript (Next.js/Bootstrap/Mapbox) and contributions and bug fixes are always welcome! And yes there are plenty of bugs - this was written under various tents at gliding competitions.<br/>
+							</Col>
+						</Row>
 					</Col>
                 </Row>
             </Container>
