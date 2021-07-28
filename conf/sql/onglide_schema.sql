@@ -204,20 +204,12 @@ DROP TABLE IF EXISTS `images`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `images` (
-  `type` char(10) DEFAULT NULL,
-  `filename` varchar(60) NOT NULL,
-  `keyid` char(20) DEFAULT NULL,
-  `width` int(11) DEFAULT NULL,
-  `height` int(11) DEFAULT NULL,
-  `status` char(1) DEFAULT 'P',
-  `description` text,
-  `title` text,
-  `added` datetime DEFAULT NULL,
-  `papersize` char(10) DEFAULT 'none',
-  PRIMARY KEY (`filename`),
-  KEY `typeindex` (`type`),
-  KEY `keyidx` (`type`,`keyid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  `class` char(15) NOT NULL,
+  `compno` char(4) NOT NULL,
+  `image` mediumblob,
+  `updated` int(11) DEFAULT NULL,
+  PRIMARY KEY (`class`,`compno`,`updated`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --

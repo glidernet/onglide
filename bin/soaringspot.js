@@ -220,7 +220,7 @@ async function update_pilots(class_url,classid,classname,keys) {
 
         // Download pictures
         if( epilot.igc_id ) {
-            //      download_picture( 'http://rankingdata.fai.org/PilotImages/'+epilot.igc_id+'.jpg', pilot.contestant_number, classid);
+            download_picture( 'http://rankingdata.fai.org/PilotImages/'+epilot.igc_id+'.jpg', pilot.contestant_number, classid, mysql );
         }
         else if( epilot.nationality && epilot.nationality.match(/^[A-Z][A-Z]/) ) {
             //      download_picture( 'http://sample.onglide.com/globalimage/flags/'+epilot.nationality+'.png', pilot.contestant_number, classid);
@@ -241,6 +241,40 @@ async function update_pilots(class_url,classid,classname,keys) {
 
         .rollback( e => { console.log("rollback") } )
         .commit();
+}
+
+// Fetch the picture from FAI rankings
+async function download_picture( url, compno, classid, mysql ) {
+
+	// Check when it was last checked
+	const lastUpdated = (await mysql.query( escape`SELECT updated FROM images WHERE class=${classid} AND compno=${compno} AND unix_timestamp()-updated < 86400` ))[0];
+
+	if( lastUpdated ) {
+		log( `not updating ${compno} picture` );
+		return;
+	}
+	
+	console.log( `downloading picture for ${classid}:${compno}` );
+    fetch( url, { "headers": { "Referer":"https://"+config.NEXT_PUBLIC_SITEURL+"/" }} )
+        .then( (res) => {
+			if( res.status != 200 ) {
+				console.log( ` ${classid}:${compno}: FAI website returns ${res.status}: ${res.statusText}` );
+				if( res.status == '404' ) {
+					return undefined;
+				}
+				throw `FAI website returns ${res.status}: ${res.statusText}`;
+			}
+			
+			else {
+				return res.buffer()
+			}})
+        .then( data => {
+			if( data ) {
+				mysql.query( escape`INSERT INTO images (class,compno,image,updated) VALUES ( ${classid}, ${compno}, ${data}, unix_timestamp() )
+                                  ON DUPLICATE KEY UPDATE image=values(image), updated=values(updated)` );
+				mysql.query( escape`UPDATE pilots SET image = 'Y' WHERE  class=${classid} AND compno=${compno}` );
+			}
+        });
 }
 
 
