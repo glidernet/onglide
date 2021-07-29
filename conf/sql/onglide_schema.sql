@@ -478,7 +478,7 @@ DROP TABLE IF EXISTS `movements`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `movements` (
-  `action` char(10) NOT NULL 'launch/landing',
+  `action` char(10) NOT NULL COMMENT 'launch/landing',
   `time` int(11) NOT NULL COMMENT 'timestamp epoch',
   `id` char(40) NOT NULL,
   `type` enum('flarm','igc') DEFAULT NULL,
@@ -497,14 +497,16 @@ DROP TABLE IF EXISTS `trackpoints`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `trackpoints` (
   `compno` char(4) NOT NULL,
-  `class` char(15) DEFAULT NULL,
+  `class` char(15) NOT NULL,
   `datecode` char(3) NOT NULL,
   `lat` float NOT NULL,
   `lng` float NOT NULL,
   `altitude` int(11) NOT NULL,
   `agl` int(11) NOT NULL,
   `t` int(11) NOT NULL DEFAULT '0' COMMENT 'timestamp epoch',
-  UNIQUE KEY `cda` (`datecode`,`class`,`compno`,`t`)
+  `bearing` int(11) DEFAULT NULL,
+  `speed` float DEFAULT NULL,
+  PRIMARY KEY (`datecode`,`class`,`t`,`compno`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
