@@ -166,8 +166,9 @@ async function main() {
 				name: 'ssurl',
 				message: '(UK English URL)',
 				initial: sskey.url,
-				validate: (v) => { return (!v || !v.match(/en_gb/)) ? `please enter URL and make sure it is the UK english version of it` : true }
-			},
+				validate: (v) => { return (!v || !v.match(/en_gb/) || v.match(/\/$/) ) ? `please enter URL and make sure it is the UK english version of it, with no trailing /` : true },
+			}
+				
 		];
 	}
 	else {
@@ -270,7 +271,7 @@ STATUS_SERVER_PORT=${8100+wsresponse.portoffset}
     // Update the database with the soaring spot key
     await mysql.transaction()
         .query( 'DELETE FROM scoringsource' )
-        .query( escape`INSERT INTO scoringsource VALUES ( ${Object.keys(sstypemap)[stresponse.type]}, ${ssresponse.url||''},
+        .query( escape`INSERT INTO scoringsource VALUES ( ${Object.keys(sstypemap)[stresponse.type]}, ${ssresponse.ssurl||''},
                                    ${ssresponse.ssclient||''}, ${ssresponse.sssecret||''}, ${ssresponse.sscontest_name||''}, 1, ${ssresponse.actuals}, ${wsresponse.portoffset}, ${wsresponse.url} )`)
         .commit();
 
