@@ -631,15 +631,14 @@ function processPacket( packet ) {
                    async (gl) => {
 					   glider.agl = Math.round(Math.max(packet.altitude-gl,0));
 					   glider.altitude = packet.altitude;
-                       // console.log( `${glider.compno}: ${packet.latitude},${packet.longitude} - EL: ${agl}, A/C ${packet.altitude} ... ${packet.altitude-agl}` );
 
                        // If the packet isn't delayed then we should send it out over our websocket
                        if( ! islate ) {
 
 						   let message = {
 							   g: glider.compno,
-							   lat: Math.floor(packet.latitude*100000)/100000,
-							   lng: Math.floor(packet.longitude*100000)/100000,
+							   lat: Math.round(packet.latitude*1000000)/1000000,
+							   lng: Math.round(packet.longitude*1000000)/1000000,
 							   alt: Math.floor(packet.altitude),
 							   agl: glider.agl,
 							   at: packet.timestamp,
@@ -664,9 +663,9 @@ function processPacket( packet ) {
 
                        // Pop into the database
 					   if( ! readOnly ) {
-						   mysql.query( escape`INSERT IGNORE INTO trackpoints (class,datecode,compno,lat,lng,altitude,agl,t)
+						   mysql.query( escape`INSERT IGNORE INTO trackpoints (class,datecode,compno,lat,lng,altitude,agl,t,bearing,speed)
                                                   VALUES ( ${glider.className}, ${channel.datecode}, ${glider.compno},
-                                                           ${packet.latitude}, ${packet.longitude}, ${packet.altitude}, ${glider.agl}, ${packet.timestamp} )` );
+                                                           ${packet.latitude}, ${packet.longitude}, ${packet.altitude}, ${glider.agl}, ${packet.timestamp}, ${packet.course}, ${packet.speed} )` );
 					   }
                    });
 
