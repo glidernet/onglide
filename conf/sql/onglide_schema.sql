@@ -207,7 +207,7 @@ CREATE TABLE `images` (
   `class` char(15) NOT NULL,
   `compno` char(4) NOT NULL,
   `image` mediumblob,
-  `updated` int(11) DEFAULT NULL,
+  `updated` int(11) NOT NULL,
   PRIMARY KEY (`class`,`compno`,`updated`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
