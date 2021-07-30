@@ -185,7 +185,7 @@ function SettingsPage( { options, setOptions, tz } ) {
 								<h5>Info</h5>
 							</Col>
 							<Col>
-								If you would like to use it for your competition please email me at melissa-onglide@littlebluecar.co.uk with your SoaringSpot API keys
+								If you would like to use it for your competition please email me at melissa-onglide@littlebluecar.co.uk with your <Link href="https://kb.naviter.com/en/kb/public-api-for-soaring-spot/">SoaringSpot API keys</Link>
 								<br/>
 								I normally ask for some commitment to help get more women into gliding.
 								<hr/>
@@ -194,6 +194,8 @@ function SettingsPage( { options, setOptions, tz } ) {
 							Flarm IDs are matched based on launches from configured airfield coordinates and the <Link href="https://ddb.glidernet.org">OGN DDB</Link>, you can add your glider there if it isn't matched. The IGC files will also be analysed to see if a launch/landing time match can be made. This happens after the trace is available from scoring so may take a few days to pick up gliders.
 								<hr/>
 								Onglide is an open source project (<Link href="http://igcrankings.fai.org">https://github.com/glidernet/onglide</Link>) written in Javascript (Next.js/Bootstrap/Mapbox) and contributions and bug fixes are always welcome! And yes there are plenty of bugs - this was written under various tents at gliding competitions.<br/>
+								<hr/>
+								Onglide does not use any cookies except to pass the mapbox token to mapbox. This cookie is 'Strictly necessary' according to the ePrivacy directive.
 							</Col>
 						</Row>
 					</Col>
