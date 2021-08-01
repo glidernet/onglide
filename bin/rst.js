@@ -147,7 +147,7 @@ async function rst(deep = false) {
 				const identity = competitionnames[mnumber].match( new RegExp(keys.contest_name + '\s*(.*)$', 'i') );
 //				const identity = competitionnames[mnumber].match( keys.contest_name, 'i' );
 				if( identity ) {
-					const className = identity[1];
+					const className = identity[1]||keys.contest_name;
 					console.log( "processing", className );
 					
 					const removes = findAll( (test) => (test.name == 'select'), m.children );
