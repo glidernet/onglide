@@ -54,7 +54,7 @@ async function main() {
 
     mysql.config({
         host: config.MYSQL_HOST,
-        database: config.MYSQL_DATABASE||process.env.MYSQL_DATABASE,
+        database: process.env.MYSQL_DATABASE||config.MYSQL_DATABASE,
         user: config.MYSQL_USER,
         password: config.MYSQL_PASSWORD
     });
@@ -94,7 +94,7 @@ async function soaringSpot(deep = false) {
     }
 
     // If we should clean everything out or just update
-    keys.deep = deep;
+    keys.deep = keys.overwrite || deep;
 
     // It's an enumerate API so we start at the top.  Use HTTPS, the rest of the
     // links in this code are HTTP because that is how they are returned in the JSON
@@ -204,13 +204,13 @@ async function update_pilots(class_url,classid,classname,keys) {
              INSERT INTO pilots (class,firstname,lastname,homeclub,username,fai,country,email,
                                  compno,participating,glidertype,greg,handicap,registered,registereddt)
                   VALUES ( ${classid},
-                           ${epilot.first_name}, ${epilot.last_name}, ${pilot.club}, null,
-                           ${epilot.civl_id?epilot.civl_id:epilot.igc_id}, ${epilot.nationality},
+                           ${epilot.first_name.substring(0,30)}, ${epilot.last_name.substring(0,30)}, ${pilot.club.substring(0,80)}, null,
+                           ${epilot.civl_id?epilot.civl_id:epilot.igc_id}, ${epilot.nationality.substring(0,2)},
                            null,
-                           ${pilot.contestant_number},
+                           ${pilot.contestant_number.substring(0,4)},
                            ${pilot.not_competing?'N':'Y'},
-                           ${pilot.aircraft_model},
-                           ${pilot.aircraft_registration},
+                           ${pilot.aircraft_model.substring(0,30)},
+                           ${pilot.aircraft_registration.substring(0,8)},
                            ${pilot.handicap}, 'Y', NOW() )
                   ON DUPLICATE KEY UPDATE
                            class=values(class), firstname=values(firstname), lastname=values(lastname),
@@ -220,7 +220,7 @@ async function update_pilots(class_url,classid,classname,keys) {
 
         // Download pictures
         if( epilot.igc_id ) {
-            download_picture( 'http://rankingdata.fai.org/PilotImages/'+epilot.igc_id+'.jpg', pilot.contestant_number, classid, mysql );
+            download_picture( 'http://rankingdata.fai.org/PilotImages/'+epilot.igc_id+'.jpg', pilot.contestant_number.substring(0,4), classid, mysql );
         }
         else if( epilot.nationality && epilot.nationality.match(/^[A-Z][A-Z]/) ) {
             //      download_picture( 'http://sample.onglide.com/globalimage/flags/'+epilot.nationality+'.png', pilot.contestant_number, classid);
@@ -250,7 +250,7 @@ async function download_picture( url, compno, classid, mysql ) {
 	const lastUpdated = (await mysql.query( escape`SELECT updated FROM images WHERE class=${classid} AND compno=${compno} AND unix_timestamp()-updated < 86400` ))[0];
 
 	if( lastUpdated ) {
-		log( `not updating ${compno} picture` );
+		console.log( `not updating ${compno} picture` );
 		return;
 	}
 	
@@ -544,7 +544,7 @@ async function process_day_scores (day,classid,classname,keys) {
     // It's a big long list of results ;)
     for ( const row of day._embedded['http://api.soaringspot.com/rel/results'] ) {
 
-        const pilot = row._embedded['http://api.soaringspot.com/rel/contestant'].contestant_number;
+        const pilot = row._embedded['http://api.soaringspot.com/rel/contestant'].contestant_number.substring(0,4);
         const handicap = correct_handicap( row._embedded['http://api.soaringspot.com/rel/contestant'].handicap );
 
         const start = row.scored_start ? (new Date(row.scored_start)).getTime()/1000 : 0;
