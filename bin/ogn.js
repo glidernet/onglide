@@ -214,7 +214,7 @@ async function main() {
         // Now download the scores and punt them out so we can mutate them into the results
         sendScores();
 
-    }, 60*1000 );
+    }, 30*1000 );
 
     // And every 2.5 minutes we need to update the trackers, and confirm the APRS
     // connection has had some traffic
