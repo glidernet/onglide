@@ -504,7 +504,7 @@ async function sendScores() {
                 _foreach( scores.pilots, (p,k) => {
                     const glider = gliders[mergedName(p)];
                     if( ! glider ) {
-                        console.log( `unable to find glider ${t.compno}` );
+                        console.log( `unable to find glider ${p.compno} in ${p.class}` );
                         return;
                     }
 
