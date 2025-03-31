@@ -1,3 +1,9 @@
+# Latest Version
+
+This code is no longer maintained.
+
+For the latest version see <https://github.com/ifly7charlie/onglide> 
+
 ## Installing
 
 It isn't difficult to deploy and run this on your own server. However if you would prefer a hosted version please email
